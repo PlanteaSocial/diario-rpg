@@ -100,10 +100,14 @@ Además del arranque local-first con `./run.sh`, el frontend soporta **Modo Dual
 - **Cifrado Zero-Knowledge en cliente (`frontend/js/vault_crypto.js`):**
   - El usuario define una **Frase secreta de bóveda**, con la cual el navegador deriva una llave **KEK** mediante `PBKDF2-SHA256` (210 000 iteraciones, sal de 128 bits) para envolver una **DEK** de 256 bits (`AES-256-GCM`), generando además una llave de recuperación única (`DRPG1-...`).
   - Todas las entradas del diario, notas rápidas, perfil, compañero RPG, retos y progreso de Aprender se cifran en el navegador con `AES-256-GCM` y AAD ligado a `uid` + documento antes de enviarse a Cloud Firestore (`/diario_users/{uid}/...`).
-- **Motor analítico en navegador (`frontend/js/client_engine.js` + `frontend/js/ml/`):**
-  - `syntax_features.js`: segmentación por cláusulas (ponderación `1.65` post-adversativa vs `1.0`), 16 señales sintácticas explícitas (negación en ventana de 5 tokens, doble negación, intensificadores, ironía entrecomillada/exclamativa, diccionario fraseológico de modismos de sobrecarga y contradicción intra-nota).
-  - `calibration_math.js`: Temperature Scaling (valencia, activación, emoción), Platt Scaling (5 ejes + 3 señales), EMA 3d para desgaste sostenido (`0.75 * hoy + 0.25 * EMA_3d >= 0.85`) y doble compuerta OR de seguridad.
-  - `suggestion_engine.js`: banco curado en español neutro sin género ni lenguaje clínico con compuerta dura, afinidad 10D, penalización MMR + HLR (`h = 7 días` / ventana `14 días`) y slot-filling determinista.
+- **Motor analítico híbrido en navegador (`frontend/js/client_engine.js` + `frontend/js/ml/`):**
+  - **Tier 0 inmediato (`< 2 ms`, `< 300 KB`):**
+    - `syntax_features.js`: segmentación por cláusulas (ponderación `1.65` post-adversativa vs `1.0`), 16 señales sintácticas explícitas (negación en ventana de 5 tokens, doble negación, intensificadores, ironía entrecomillada/exclamativa, diccionario fraseológico de modismos de sobrecarga y contradicción intra-nota).
+    - `calibration_math.js`: Temperature Scaling (valencia, activación, emoción), Platt Scaling (5 ejes + 3 señales), EMA 3d para desgaste sostenido (`0.75 * hoy + 0.25 * EMA_3d >= 0.85`) y doble compuerta OR de seguridad.
+    - `suggestion_engine.js`: banco curado en español neutro sin género ni lenguaje clínico con compuerta dura, afinidad 10D, penalización MMR + HLR (`h = 7 días` / ventana `14 días`) y slot-filling determinista.
+  - **Tier 1 neuronal ONNX INT8 offline (`semantic.worker.js` + `semantic_client.js` + `bpe_tokenizer.js`):**
+    - Destilación Teacher-Student de 22 → 2 capas (`scripts/distill_laya_student.py`) desde `laya_finetuned` a `models/model_es_q8.onnx` (`18.67 MB`), `tokenizer_es.json` (`687.6 KB`, 12 290 subpalabras), `prototypes_neg_v1.json` (`58.0 KB`) y cabezales híbridos `diario_heads_v1.json` (`125.5 KB`).
+    - Los pesos viven fuera de Firebase Hosting (servidos vía GitHub + `jsDelivr` / `raw.githubusercontent` CDN) con caché persistente en **IndexedDB + Cache API** (`navigator.storage.persist()`) y reconciliación en frío (`entryId` + `revision`) de Tier 0 a Tier 1.
 - **Respaldo portátil:** desde **Mi cuenta** se puede exportar/importar respaldo JSON completo y cambiar la frase de bóveda sin re-cifrar todo el historial.
 - **Despliegue:**
 
@@ -156,22 +160,31 @@ diario_inteligente/
 │       ├── vault_crypto.js     # Cifrado Zero-Knowledge AES-256-GCM (WebCrypto)
 │       ├── ml/
 │       │   ├── syntax_features.js   # Segmentación 1.65/1.0 y 16 señales sintácticas
-│       │   ├── calibration_math.js  # Temperature Scaling, Platt, EMA 3d y compuertas
-│       │   └── suggestion_engine.js # Motor vectorial 10D + MMR + HLR sin repetición
+│       │   ├── calibration_math.js  # Temperature Scaling, Platt, EMA 3d, Tier 1 híbrido
+│       │   ├── suggestion_engine.js # Motor vectorial 10D + MMR + HLR sin repetición
+│       │   ├── bpe_tokenizer.js     # Tokenizador BPE + byte-fallback en JS puro
+│       │   ├── semantic.worker.js   # Web Worker ONNX WASM con caché IndexedDB offline
+│       │   └── semantic_client.js   # Coordinador Cold Start (Tier 0 -> Tier 1 entryId)
 │       ├── client_engine.js    # Orquestador local, seguridad, analíticas y HLR en JS
 │       ├── firebase_backend.js # Adaptador Firebase Auth + Firestore E2EE
 │       ├── api.js              # Enrutador dual (FastAPI local / Firebase Cloud)
 │       ├── auth.js             # Puerta de acceso local, Google/Email y Bóveda
 │       ├── app.js              # Controlador principal
 │       └── components/         # Editor, notas, historial, patrones, santuario y Aprender
+├── models/                     # Artefactos Tier 1 servidos vía GitHub CDN (0 B en Spark)
+│   ├── model_es_q8.onnx        # Encoder ModernBERT 2 capas INT8 destilado (18.67 MB)
+│   ├── tokenizer_es.json       # Vocabulario BPE podado al español (687.6 KB)
+│   ├── prototypes_neg_v1.json  # 8 prototipos multi-ancla + subespacio SVD negación (58 KB)
+│   └── diario_heads_v1.json    # Cabezal híbrido 796D calibrado (125.5 KB)
 ├── assets/
 │   └── diario-rpg.svg          # Icono del lanzador de escritorio
 ├── data/
 │   └── ...                     # SQLite, rutas educativas y evaluación
 ├── scripts/
+│   ├── distill_laya_student.py # Destilación Teacher-Student + cuantización INT8 ONNX
 │   ├── evaluate_laya.py        # Evaluación de exactitud y calibración de Laya
 │   └── retrain_laya.py         # Pipeline de reentrenamiento condicional
-├── tests/                      # Suite unittest + Node ML (47 pruebas)
+├── tests/                      # Suite unittest + Node ML + Chromium E2E (50 pruebas)
 ├── firebase.json               # Configuración Auth, Firestore (northamerica-south1) y Hosting
 ├── firestore.rules             # Reglas estrictas por UID y esquema cifrado
 ├── firestore.indexes.json      # Índices de Firestore

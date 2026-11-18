@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "terms": {
+    "TDAH": "Condición del neurodesarrollo con patrones persistentes de inatención, hiperactividad o impulsividad que afectan la vida diaria. No se diagnostica con un test online.",
+    "inatención": "Dificultad para sostener, filtrar y organizar la atención en tareas que no resultan estimulantes.",
+    "hiperactividad": "Necesidad de movimiento o inquietud interna. En adultos suele sentirse como un motor que no se apaga.",
+    "impulsividad": "Actuar antes de evaluar consecuencias: interrumpir, decidir rápido o buscar alivio inmediato.",
+    "masking": "Esfuerzo consciente o automático de ocultar dificultades para encajar. Puede verse como calma externa y agotamiento interno.",
+    "función ejecutiva": "Conjunto de procesos para planificar, iniciar, sostener y cambiar de tarea. Es el 'sistema de arranque' del día.",
+    "desgaste sostenido": "Acumulación de carga durante semanas o meses que ya no se recupera con un descanso corto.",
+    "carga mental": "Trabajo invisible de recordar, anticipar y coordinar pendientes. Ocupa energía aunque no se vea.",
+    "higiene del sueño": "Hábitos que favorecen dormir bien: horarios regulares, luz adecuada, menos estimulantes y un cierre tranquilo.",
+    "ritmo circadiano": "Reloj interno de aproximadamente 24 horas que regula sueño, energía y atención según la luz y las rutinas.",
+    "NREM": "Fase del sueño sin movimientos oculares rápidos. El sueño profundo de ondas lentas participa en la consolidación de la memoria.",
+    "regulación emocional": "Capacidad de reconocer, modular y expresar emociones sin negarlas ni desbordarse."
+  }
+}

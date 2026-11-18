@@ -1,0 +1,24 @@
+{
+  "status": "retrained_and_calibrated",
+  "checkpoint_used": "C:\\Users\\juana\\.gemini\\antigravity\\scratch\\diario_inteligente\\data\\checkpoints\\laya_finetuned",
+  "before": {
+    "accuracy_valencia": 0.6,
+    "accuracy_energia": 0.52,
+    "accuracy_emocion": 0.6,
+    "overall_accuracy": 0.5733,
+    "average_confidence": 0.7033,
+    "calibration_gap": 0.1033
+  },
+  "after": {
+    "accuracy_valencia": 0.6,
+    "accuracy_energia": 0.52,
+    "accuracy_emocion": 0.6,
+    "overall_accuracy": 0.5733,
+    "average_confidence": 0.6978,
+    "calibration_gap": 0.0978
+  },
+  "improvement": {
+    "overall_accuracy_gain": 0.0,
+    "calibration_gap_reduction": 0.55
+  }
+}

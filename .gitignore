@@ -1,0 +1,34 @@
+# Entornos y artefactos locales
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.run/
+.firebase/
+.env
+.env.*
+node_modules/
+
+# Respaldos locales y bases de datos de usuario
+backups/
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/checkpoints/
+data/train_feedback.jsonl
+*.bak
+
+# Modelos / binarios pesados (> 1 MB deben ir en GitHub Releases / CDN externo)
+*.onnx
+*.onnx_data
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.zip
+*.tar.gz
+
+# Sistema
+.DS_Store
+Thumbs.db

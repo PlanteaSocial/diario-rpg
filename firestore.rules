@@ -1,0 +1,181 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Zero-knowledge E2EE cloud vault schema for Diario RPG (Spark).
+// Plaintext diary content, quick notes, assessments, and profiles
+// NEVER exist in Firestore; only wrapped keys and AES-256-GCM
+// ciphertexts are persisted under each authenticated user's UID.
+//
+// Collection: /diario_users
+// Document ID: {userId} (must match request.auth.uid)
+// Fields (exact set required on create and update):
+//   - schemaVersion: int (required, must equal 1, immutable on update)
+//   - vaultMeta: map (required, exact keys: v, kdf, iter, saltB64, wrappedDek)
+//       - v: int (required, must equal 1)
+//       - kdf: string (required, must equal 'PBKDF2-SHA256')
+//       - iter: int (required, 100000 <= iter <= 1000000)
+//       - saltB64: string (required, 16..128 chars)
+//       - wrappedDek: map (required, exact keys: iv, ct)
+//           - iv: string (required, 12..64 chars)
+//           - ct: string (required, 16..1024 chars)
+//   - createdAt: string (required, 10..64 chars, immutable on update)
+//   - updatedAt: string (required, 10..64 chars)
+//
+// Subcollection: /diario_users/{userId}/vault
+// Document ID: {docId} (must be in ['profile', 'learning', 'assessments'])
+// Fields (exact set required on create and update):
+//   - v: int (required, must equal 1)
+//   - alg: string (required, must equal 'AES-256-GCM')
+//   - iv: string (required, 12..64 chars)
+//   - ct: string (required, 16..400000 chars)
+//   - updatedAt: string (required, <= 64 chars)
+//
+// Subcollection: /diario_users/{userId}/days
+// Document ID: {dateKey} (must match ^\d{4}-\d{2}-\d{2}$)
+// Fields (exact set required on create and update):
+//   - v: int (required, must equal 1)
+//   - alg: string (required, must equal 'AES-256-GCM')
+//   - date: string (required, must equal {dateKey})
+//   - iv: string (required, 12..64 chars)
+//   - ct: string (required, 16..250000 chars)
+//   - updatedAt: string (required, <= 64 chars)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the request comes from an authenticated Firebase user
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if the authenticated user owns the user-scoped document tree
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Validate that a map contains both all required keys and only allowed keys
+    function hasExactKeys(mapData, keys) {
+      return mapData is map &&
+             mapData.keys().hasAll(keys) &&
+             mapData.keys().hasOnly(keys);
+    }
+
+    // Validate that a value is a string within inclusive length bounds
+    function isBoundedString(val, minLen, maxLen) {
+      return val is string &&
+             val.size() >= minLen &&
+             val.size() <= maxLen;
+    }
+
+    // Validate allowed fixed document IDs in the vault subcollection
+    function isValidVaultDocId(docId) {
+      return docId in ['profile', 'learning', 'assessments'];
+    }
+
+    // Validate YYYY-MM-DD document ID format for daily encrypted entries
+    function validDateKey(dateKey) {
+      return dateKey is string &&
+             dateKey.matches('^\\d{4}-\\d{2}-\\d{2}$');
+    }
+
+    // ===============================================================
+    // Domain Validators (Called in BOTH create and update)
+    // ===============================================================
+
+    // Validate the wrapped Data Encryption Key (DEK) structure
+    function validWrappedDek(dek) {
+      return hasExactKeys(dek, ['iv', 'ct']) &&
+             isBoundedString(dek.iv, 12, 64) &&
+             isBoundedString(dek.ct, 16, 1024);
+    }
+
+    // Validate PBKDF2 key-derivation and DEK wrapping metadata
+    function validVaultMeta(meta) {
+      return hasExactKeys(meta, ['v', 'kdf', 'iter', 'saltB64', 'wrappedDek']) &&
+             meta.v is int && meta.v == 1 &&
+             meta.kdf is string && meta.kdf == 'PBKDF2-SHA256' &&
+             meta.iter is int && meta.iter >= 100000 && meta.iter <= 1000000 &&
+             isBoundedString(meta.saltB64, 16, 128) &&
+             validWrappedDek(meta.wrappedDek);
+    }
+
+    // Validate top-level /diario_users/{userId} vault header document
+    function validVaultHeader(data) {
+      return hasExactKeys(data, ['schemaVersion', 'vaultMeta', 'createdAt', 'updatedAt']) &&
+             data.schemaVersion is int && data.schemaVersion == 1 &&
+             validVaultMeta(data.vaultMeta) &&
+             isBoundedString(data.createdAt, 10, 64) &&
+             isBoundedString(data.updatedAt, 10, 64);
+    }
+
+    // Validate /diario_users/{userId}/vault/{docId} encrypted payload
+    function validEncryptedVaultDoc(data) {
+      return hasExactKeys(data, ['v', 'alg', 'iv', 'ct', 'updatedAt']) &&
+             data.v is int && data.v == 1 &&
+             data.alg is string && data.alg == 'AES-256-GCM' &&
+             isBoundedString(data.iv, 12, 64) &&
+             isBoundedString(data.ct, 16, 400000) &&
+             data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    // Validate /diario_users/{userId}/days/{dateKey} encrypted daily entry
+    function validEncryptedDayDoc(data, dateKey) {
+      return hasExactKeys(data, ['v', 'alg', 'date', 'iv', 'ct', 'updatedAt']) &&
+             data.v is int && data.v == 1 &&
+             data.alg is string && data.alg == 'AES-256-GCM' &&
+             data.date is string && data.date == dateKey &&
+             isBoundedString(data.iv, 12, 64) &&
+             isBoundedString(data.ct, 16, 250000) &&
+             data.updatedAt is string && data.updatedAt.size() <= 64;
+    }
+
+    // ===============================================================
+    // Default-Deny Catch-All
+    // ===============================================================
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /diario_users/{userId} {
+      // Strict per-owner access to vault header; prevents cross-user access & user enumeration
+      allow read, delete: if isOwner(userId);
+      allow create: if isOwner(userId) && validVaultHeader(request.resource.data);
+      allow update: if isOwner(userId) &&
+                       validVaultHeader(request.resource.data) &&
+                       request.resource.data.createdAt == resource.data.createdAt &&
+                       request.resource.data.schemaVersion == resource.data.schemaVersion;
+
+      match /vault/{docId} {
+        // Restrict single-doc get/delete to allowed IDs while permitting owner-scoped list queries
+        allow get, delete: if isOwner(userId) && isValidVaultDocId(docId);
+        allow list: if isOwner(userId);
+        allow create, update: if isOwner(userId) &&
+                                 isValidVaultDocId(docId) &&
+                                 validEncryptedVaultDoc(request.resource.data);
+      }
+
+      match /days/{dateKey} {
+        // Restrict single-doc get/delete to valid YYYY-MM-DD IDs while permitting owner-scoped list queries
+        allow get, delete: if isOwner(userId) && validDateKey(dateKey);
+        allow list: if isOwner(userId);
+        allow create, update: if isOwner(userId) &&
+                                 validDateKey(dateKey) &&
+                                 validEncryptedDayDoc(request.resource.data, dateKey);
+      }
+    }
+  }
+}

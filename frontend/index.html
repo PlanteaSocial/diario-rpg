@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diario RPG · Bienestar Local-First</title>
+  <script>
+    (function() {
+      var t = localStorage.getItem("diario_theme") || "light";
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="auth-locked">
+
+
+  <!-- ==================== PUERTA DE AUTENTICACIÓN ==================== -->
+  <div id="auth-gate" class="auth-gate">
+    <div class="auth-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <div class="auth-brand">
+        <div class="auth-logo">📖</div>
+        <h1 id="auth-title" class="serif-heading">Diario RPG</h1>
+        <p class="auth-tagline">Tu diario, tus rutas, tus datos. Solo en este equipo.</p>
+      </div>
+
+      <section id="auth-panel-loading" class="auth-panel auth-loading">
+        <div class="auth-spinner" aria-hidden="true"></div>
+        <p>Comprobando sesión…</p>
+      </section>
+
+      <section id="auth-panel-login" class="auth-panel" hidden>
+        <h2 class="serif-heading">Entrar</h2>
+        <div id="auth-setup-notice" class="auth-notice" hidden></div>
+        <div id="auth-login-info" class="auth-notice" hidden></div>
+        <form id="auth-login-form">
+          <label class="auth-field">Usuario
+            <input id="auth-login-user" name="username" autocomplete="username" required maxlength="32" spellcheck="false">
+          </label>
+          <label class="auth-field">Contraseña
+            <input id="auth-login-pass" name="password" type="password" autocomplete="current-password" required maxlength="128">
+          </label>
+          <div id="auth-login-error" class="auth-error" role="alert" hidden></div>
+          <button type="submit" id="auth-login-submit" class="auth-submit">Entrar</button>
+        </form>
+        <div class="auth-switch">
+          <span id="auth-switch-text">¿No tienes cuenta?</span>
+          <button type="button" id="auth-show-setup" class="auth-link">Crear cuenta</button>
+        </div>
+      </section>
+
+      <section id="auth-panel-setup" class="auth-panel" hidden>
+        <h2 class="serif-heading">Crear cuenta</h2>
+        <p class="auth-note">Crea la cuenta administradora de este equipo. Los datos que ya existan se asignarán a esta cuenta.</p>
+        <form id="auth-setup-form">
+          <label class="auth-field">Nombre visible
+            <input id="auth-setup-name" maxlength="60" required autocomplete="name">
+          </label>
+          <label class="auth-field">Usuario
+            <input id="auth-setup-user" maxlength="32" required autocomplete="username" spellcheck="false">
+          </label>
+          <label class="auth-field">Contraseña
+            <input id="auth-setup-pass" type="password" minlength="10" maxlength="128" required autocomplete="new-password">
+          </label>
+          <label class="auth-field">Repite la contraseña
+            <input id="auth-setup-pass2" type="password" minlength="10" maxlength="128" required autocomplete="new-password">
+          </label>
+          <p class="auth-hint">Mínimo 10 caracteres, con al menos una letra y un número.</p>
+          <div id="auth-setup-error" class="auth-error" role="alert" hidden></div>
+          <button type="submit" id="auth-setup-submit" class="auth-submit">Crear cuenta</button>
+        </form>
+        <div class="auth-switch">
+          <span>¿Ya tienes cuenta?</span>
+          <button type="button" id="auth-show-login" class="auth-link">Entrar</button>
+        </div>
+      </section>
+
+      <section id="auth-panel-change" class="auth-panel" hidden>
+        <h2 class="serif-heading">Nueva contraseña</h2>
+        <p class="auth-note">Por seguridad, cambia la contraseña temporal antes de continuar.</p>
+        <form id="auth-change-form">
+          <label class="auth-field">Contraseña actual
+            <input id="auth-change-current" type="password" required autocomplete="current-password" maxlength="128">
+          </label>
+          <label class="auth-field">Nueva contraseña
+            <input id="auth-change-new" type="password" minlength="10" maxlength="128" required autocomplete="new-password">
+          </label>
+          <label class="auth-field">Repite la nueva
+            <input id="auth-change-new2" type="password" minlength="10" maxlength="128" required autocomplete="new-password">
+          </label>
+          <div id="auth-change-error" class="auth-error" role="alert" hidden></div>
+          <button type="submit" id="auth-change-submit" class="auth-submit">Guardar y entrar</button>
+        </form>
+      </section>
+
+      <!-- MODO NUBE: LOGIN GOOGLE / CORREO -->
+      <section id="auth-panel-cloud-login" class="auth-panel" hidden>
+        <h2 id="auth-cloud-title" class="serif-heading">Entrar a tu diario</h2>
+        <button type="button" id="auth-google-btn" class="auth-google-btn">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z"/>
+            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z"/>
+          </svg>
+          Continuar con Google
+        </button>
+
+        <div class="auth-divider"><span>o con tu correo</span></div>
+
+        <div id="auth-cloud-info" class="auth-notice" hidden></div>
+        <form id="auth-cloud-email-form">
+          <label id="auth-cloud-name-wrap" class="auth-field" hidden>Nombre visible
+            <input id="auth-cloud-name" maxlength="60" autocomplete="name">
+          </label>
+          <label class="auth-field">Correo electrónico
+            <input id="auth-cloud-email" type="email" autocomplete="email" required maxlength="128">
+          </label>
+          <label class="auth-field">Contraseña
+            <input id="auth-cloud-pass" type="password" autocomplete="current-password" required minlength="6" maxlength="128">
+          </label>
+          <label id="auth-cloud-pass2-wrap" class="auth-field" hidden>Repite la contraseña
+            <input id="auth-cloud-pass2" type="password" autocomplete="new-password" minlength="6" maxlength="128">
+          </label>
+          <div id="auth-cloud-error" class="auth-error" role="alert" hidden></div>
+          <button type="submit" id="auth-cloud-submit" class="auth-submit">Entrar con correo</button>
+        </form>
+
+        <div class="auth-switch" style="display:flex; flex-direction:column; gap:0.45rem;">
+          <button type="button" id="auth-cloud-toggle-mode" class="auth-link">Crear cuenta con correo</button>
+          <button type="button" id="auth-cloud-reset-btn" class="auth-link" style="font-weight:600; font-size:0.78rem;">¿Olvidaste tu contraseña?</button>
+        </div>
+      </section>
+
+      <!-- MODO NUBE: CREAR BÓVEDA ZERO-KNOWLEDGE -->
+      <section id="auth-panel-vault-create" class="auth-panel" hidden>
+        <h2 class="serif-heading">Crea tu Bóveda Cifrada</h2>
+        <p class="auth-note">
+          Conectado como <strong id="vault-create-account-label">—</strong>.
+          Esta frase cifra tu diario con <b>AES-256-GCM</b> en tu dispositivo antes de guardarlo en Firestore.
+        </p>
+        <form id="vault-create-form">
+          <label class="auth-field">Frase secreta de bóveda (mín. 8 caracteres)
+            <input id="vault-create-pass" type="password" minlength="8" maxlength="128" required autocomplete="new-password">
+          </label>
+          <label class="auth-field">Repite tu frase secreta
+            <input id="vault-create-pass2" type="password" minlength="8" maxlength="128" required autocomplete="new-password">
+          </label>
+          <div id="vault-create-error" class="auth-error" role="alert" hidden></div>
+          <button type="submit" id="vault-create-submit" class="auth-submit">Crear bóveda cifrada</button>
+        </form>
+        <div class="auth-switch">
+          <button type="button" id="vault-create-switch-account" class="auth-link">Cambiar de cuenta</button>
+        </div>
+      </section>
+
+      <!-- MODO NUBE: LLAVE DE RECUPERACIÓN ÚNICA -->
+      <section id="auth-panel-vault-recovery" class="auth-panel" hidden>
+        <h2 class="serif-heading">Guarda tu Llave de Recuperación</h2>
+        <p class="auth-note">
+          Como ni Google ni nosotros podemos leer tu diario, esta llave es tu único respaldo si olvidas tu frase de bóveda.
+        </p>
+        <div class="vault-recovery-box">
+          <code id="vault-recovery-code">—</code>
+        </div>
+        <div style="display:flex; gap:0.5rem; margin-bottom:0.85rem;">
+          <button type="button" id="vault-recovery-copy" class="btn-secondary" style="flex:1;">Copiar</button>
+          <button type="button" id="vault-recovery-download" class="btn-secondary" style="flex:1;">Descargar .txt</button>
+        </div>
+        <label class="vault-ack-check">
+          <input type="checkbox" id="vault-recovery-ack">
+          <span>Ya guardé mi llave de recuperación en un lugar seguro.</span>
+        </label>
+        <button type="button" id="vault-recovery-continue" class="auth-submit" disabled>Entrar a mi diario</button>
+      </section>
+
+      <!-- MODO NUBE: DESBLOQUEAR BÓVEDA -->
+      <section id="auth-panel-vault-unlock" class="auth-panel" hidden>
+        <h2 class="serif-heading">Desbloquear Diario</h2>
+        <p class="auth-note">
+          Cuenta: <strong id="vault-unlock-account-label">—</strong>. Ingresa tu frase secreta para descifrar tus entradas en memoria.
+        </p>
+        <form id="vault-unlock-form">
+          <label class="auth-field">Frase de bóveda
+            <input id="vault-unlock-pass" type="password" required autocomplete="current-password" maxlength="128">
+          </label>
+          <div id="vault-unlock-error" class="auth-error" role="alert" hidden></div>
+          <button type="submit" id="vault-unlock-submit" class="auth-submit">Desbloquear diario</button>
+        </form>
+
+        <div id="vault-recovery-unlock-wrap" hidden>
+          <form id="vault-recovery-unlock-form">
+            <label class="auth-field">Llave de recuperación (DRPG1-...)
+              <input id="vault-recovery-input" required autocomplete="off" spellcheck="false" placeholder="DRPG1-XXXX-...">
+            </label>
+            <label class="auth-field">Nueva frase de bóveda (opcional)
+              <input id="vault-recovery-newpass" type="password" minlength="8" maxlength="128" autocomplete="new-password">
+            </label>
+            <label class="auth-field">Repite nueva frase
+              <input id="vault-recovery-newpass2" type="password" minlength="8" maxlength="128" autocomplete="new-password">
+            </label>
+            <div id="vault-recovery-error" class="auth-error" role="alert" hidden></div>
+            <button type="submit" id="vault-recovery-unlock-submit" class="auth-submit">Recuperar acceso</button>
+          </form>
+        </div>
+
+        <div class="auth-switch" style="display:flex; flex-direction:column; gap:0.45rem;">
+          <button type="button" id="vault-toggle-recovery" class="auth-link">Usar llave de recuperación</button>
+          <button type="button" id="vault-unlock-switch-account" class="auth-link" style="font-weight:600; font-size:0.78rem;">Cambiar de cuenta</button>
+        </div>
+      </section>
+
+      <p class="auth-foot">🔒 Local-first · Contraseñas con hash Argon2id · Sin nube</p>
+      <p class="auth-server">Servidor: <code id="auth-server-url">—</code></p>
+    </div>
+  </div>
+
+  <!-- Header Cozy RPG Estilo Pergamino + Pixel Art -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-name serif-heading">Diario RPG</div>
+    </div>
+
+    <nav class="nav-tabs desktop-nav-tabs">
+      <button class="nav-tab-btn active" data-tab="hoy"><span id="px-nav-hoy" class="nav-px-ico"></span> Hoy</button>
+      <button class="nav-tab-btn" data-tab="historial"><span id="px-nav-hist" class="nav-px-ico"></span> Historial</button>
+      <button class="nav-tab-btn" data-tab="patrones"><span id="px-nav-pat" class="nav-px-ico"></span> Patrones</button>
+      <button class="nav-tab-btn" data-tab="autoconocimiento"><span id="px-nav-retos" class="nav-px-ico"></span> Retos</button>
+      <button class="nav-tab-btn" data-tab="aprender"><span id="px-nav-learn" class="nav-px-ico"></span> Aprender</button>
+    </nav>
+
+    <div class="header-right-actions">
+      <button id="header-user-btn" class="user-chip" title="Cuenta y usuarios">
+        <span id="header-user-initial" class="user-chip-avatar">👤</span>
+        <span id="header-user-name" class="user-chip-name">Cuenta</span>
+      </button>
+      <button id="header-slime-btn" class="pixel-sq-btn" title="Abrir Santuario del Compañero">
+        <span id="px-header-slime"></span>
+      </button>
+      <button id="header-patterns-btn" class="pixel-sq-btn" title="Ir a Patrones y Gráficas">
+        <span id="px-header-chart"></span>
+      </button>
+      <button id="quick-theme-btn" class="pixel-sq-btn" title="Cambiar entre Pergamino Claro y Noche Cozy">
+        <span id="px-header-moon"></span>
+      </button>
+      <button id="header-settings-btn" class="pixel-sq-btn" title="Ajustes, Metas y Apariencia">
+        <span id="px-header-gear"></span>
+      </button>
+      <button id="qr-access-btn" class="dev-mode-btn qr-header-btn" title="Conectar desde el celular con Código QR"><span class="btn-ico" aria-hidden="true">▦</span><span class="btn-label">Código QR</span><span class="btn-label-short">QR</span></button>
+      <button id="dev-mode-btn" class="dev-mode-btn" title="Modo Desarrollador: inspeccionar Laya AI"><span class="btn-ico" aria-hidden="true">⚡</span><span class="btn-label">Dev</span></button>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="main-content">
+
+    <!-- Columna lateral (PC): perfil, resumen del día y atajos -->
+    <aside class="side-rail">
+
+    <!-- Banner Compacto del Aventurero & Compañero Slime -->
+    <section class="adventurer-banner">
+      <div class="adv-top-row">
+        <div class="adv-portrait-frame" id="px-hero-portrait" title="Cronista Sereno"></div>
+        <div class="adv-info-col">
+          <div class="adv-title-line">
+            <span id="adv-level-text" class="adv-level-serif">Nivel 1</span>
+            <span id="adv-coins-pill" class="coin-pill">🪙 35</span>
+            <span id="adv-title-text" class="adv-rank-sub">Aprendiz Sereno</span>
+          </div>
+          <div class="adv-exp-track">
+            <div id="adv-exp-fill" class="adv-exp-fill" style="width: 20%;"></div>
+          </div>
+          <div class="adv-exp-meta">
+            <span>Constancia diaria</span>
+            <span id="adv-exp-label">20 / 100 EXP</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="adv-companion-row">
+        <div class="adv-slime-left" id="open-sanctuary-pet-btn" role="button" tabindex="0">
+          <span id="adv-mini-slime"></span>
+          <div id="adv-slime-status" class="adv-slime-txt"><strong>Slime · Nv.1</strong> Sereno · 68%</div>
+        </div>
+        <div class="adv-slime-actions">
+          <button type="button" class="cozy-mini-pill" onclick="SanctuaryComponent.open('mascota')">Mascota</button>
+          <button type="button" id="open-sanctuary-shop-btn" class="cozy-mini-pill">Tienda</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Resumen numérico del día -->
+    <section class="card rail-card today-stats-card" id="today-stats-card">
+      <div class="rail-card-head">
+        <span class="rail-card-title">Hoy en números</span>
+        <span class="rail-card-meta" id="rail-stats-date">—</span>
+      </div>
+      <div class="rail-stats-grid">
+        <div class="rail-stat">
+          <span class="rail-stat-ico">🌙</span>
+          <div><b id="rail-sleep">—</b><small>Sueño</small></div>
+        </div>
+        <div class="rail-stat">
+          <span class="rail-stat-ico">🙂</span>
+          <div><b id="rail-mood">—</b><small>Ánimo</small></div>
+        </div>
+        <div class="rail-stat">
+          <span class="rail-stat-ico">⚡</span>
+          <div><b id="rail-energy">—</b><small>Energía</small></div>
+        </div>
+        <div class="rail-stat">
+          <span class="rail-stat-ico">🎒</span>
+          <div><b id="rail-load">—</b><small>Carga</small></div>
+        </div>
+      </div>
+      <div class="rail-mood-line" id="rail-mood-line">Sin check-in todavía</div>
+    </section>
+
+    <!-- Atajos de la vista Hoy -->
+    <section class="card rail-card rail-actions-card">
+      <div class="rail-card-head">
+        <span class="rail-card-title">Atajos</span>
+      </div>
+      <div class="rail-actions">
+        <button type="button" class="rail-action-btn" data-rail-action="note"><span>📝</span> Nuevo apunte</button>
+        <button type="button" class="rail-action-btn" data-rail-action="historial"><span>📖</span> Historial</button>
+        <button type="button" class="rail-action-btn" data-rail-action="patrones"><span>📊</span> Patrones</button>
+        <button type="button" class="rail-action-btn" data-rail-action="autoconocimiento"><span>🧭</span> Retos</button>
+      </div>
+    </section>
+
+    </aside>
+
+    <!-- ==================== PESTAÑA: HOY ==================== -->
+    <section id="pane-hoy" class="tab-pane active">
+      <div class="today-header">
+        <div>
+          <h1 class="today-title serif-heading" id="page-main-title">Hoy</h1>
+          <div class="today-date" id="current-date-label">Cargando fecha...</div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+          <!-- Anillo Sutil de Meta Diaria -->
+          <div class="daily-goal-pill" title="Tu avance reflexivo según tu meta diaria">
+            <div class="daily-goal-ring-wrap">
+              <svg class="daily-goal-svg" viewBox="0 0 36 36">
+                <circle class="daily-goal-ring-bg" cx="18" cy="18" r="14"></circle>
+                <circle id="daily-goal-ring-fill" class="daily-goal-ring-fill" cx="18" cy="18" r="14" stroke-dasharray="87.96" stroke-dashoffset="87.96"></circle>
+              </svg>
+              <span id="daily-goal-pct-text" class="daily-goal-pct">0%</span>
+            </div>
+            <div id="daily-goal-desc-text" class="daily-goal-desc">Meta: <b>Normal (10m)</b></div>
+          </div>
+
+          <!-- Menú Desplegable Discreto de Fecha y Pruebas -->
+          <div class="dropdown-wrapper">
+            <button id="date-tools-toggle-btn" class="btn-secondary dropdown-trigger" title="Cambiar fecha o simular semana">
+              🗓️ Opciones ▾
+            </button>
+            <div id="date-tools-popover" class="dropdown-popover">
+              <div class="popover-section-label">Cambiar de fecha</div>
+              <div style="display: flex; gap: 0.35rem; margin-bottom: 0.6rem;">
+                <button id="prev-day-btn" class="nav-date-btn" style="flex:1;">← -1 Día</button>
+                <button id="today-jump-btn" class="nav-date-btn active" style="flex:1;">Hoy</button>
+                <button id="next-day-btn" class="nav-date-btn" style="flex:1;">+1 Día →</button>
+              </div>
+              <input type="date" id="active-date-picker" class="active-date-picker" style="width: 100%; margin-bottom: 0.85rem;">
+              <div id="date-tools-dev-section">
+                <div class="popover-section-label">Herramientas de prueba</div>
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                  <button id="simulate-week-btn" class="sim-week-btn" style="width: 100%;">⚡ Simular 1 Semana</button>
+                  <button id="reset-db-btn" class="reset-db-btn" style="width: 100%; border: 1px solid var(--border-subtle);">🗑️ Limpiar Todo</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tarjeta Zen del Día (Flujo Paso a Paso sin Saturación) -->
+      <div class="card hero-journal-card">
+        <!-- ETAPA 1: ESCRITURA TRANQUILA -->
+        <div id="hoy-stage-write">
+          <textarea id="day-text" class="day-textarea" placeholder="Este es tu pergamino tranquilo. Escribe libremente cómo te sientes o lo que ocurrió hoy..."></textarea>
+
+          <div class="write-footer-bar">
+            <label class="enter-hint-toggle" title="Al terminar de escribir, presiona Enter para ir directo a las preguntas (usa Shift+Enter para salto de línea)">
+              <input type="checkbox" id="enter-advances-chk" checked>
+              <span>⏎ Enter avanza <small>(Shift+Enter nueva línea)</small></span>
+            </label>
+            <button id="continue-to-checkin-btn" class="btn-primary">Continuar →</button>
+          </div>
+        </div>
+
+        <!-- ETAPA 2: CHECK-IN PASO A PASO (Una pregunta a la vez + Botón Atrás) -->
+        <div id="hoy-stage-checkin" style="display: none;">
+          <div class="checkin-top-meta">
+            <button type="button" id="checkin-edit-note-btn" class="checkin-note-pill" title="Volver a editar tu escrito">
+              <span>📝</span>
+              <span id="checkin-note-preview-text">Tu nota...</span>
+              <span style="color: var(--accent-primary); font-weight: 700;">Editar</span>
+            </button>
+            <span id="checkin-step-label" class="checkin-step-badge">Pregunta 1 de 6</span>
+          </div>
+
+          <div class="ob-progress-track" style="margin-bottom: 1.5rem;">
+            <div id="checkin-progress-fill" class="ob-progress-fill" style="width: 16.6%;"></div>
+          </div>
+
+          <div id="checkin-step-1" class="checkin-step active">
+            <div class="checkin-q-emoji">🌙</div>
+            <h3 class="checkin-q-title serif-heading">¿A qué hora te acostaste y despertaste?</h3>
+            <p class="checkin-q-sub">Calcularemos tus horas reales de descanso automáticamente.</p>
+            <div class="sleep-step-box">
+              <div class="sleep-inputs" style="max-width: 340px; margin: 0 auto;">
+                <input type="time" id="sleep-bedtime" class="sleep-input-box big-time" value="23:00">
+                <span style="color: var(--text-tertiary);">a</span>
+                <input type="time" id="sleep-wakeup" class="sleep-input-box big-time" value="07:00">
+              </div>
+              <div class="sleep-calc" id="sleep-hours-calc" style="text-align: center; margin-top: 0.75rem; font-size: 0.95rem;">
+                8.0 horas de sueño
+              </div>
+              <div id="sleep-warning-banner" class="sleep-warning-banner" role="alert" style="display: none;"></div>
+            </div>
+          </div>
+
+          <div id="checkin-step-2" class="checkin-step">
+            <div class="checkin-q-emoji">🥗</div>
+            <h3 class="checkin-q-title serif-heading">¿Pudiste comer a tus horas hoy?</h3>
+            <p class="checkin-q-sub">Toca una opción para avanzar suavemente.</p>
+            <div class="pill-group big-step-pills" id="food-group">
+              <button type="button" class="pill-btn active" data-val="si">Sí, a mis horas</button>
+              <button type="button" class="pill-btn" data-val="a_medias">A medias</button>
+              <button type="button" class="pill-btn" data-val="no">No hoy</button>
+            </div>
+          </div>
+
+          <div id="checkin-step-3" class="checkin-step">
+            <div class="checkin-q-emoji">💬</div>
+            <h3 class="checkin-q-title serif-heading">En una palabra, ¿cómo sentiste tu día?</h3>
+            <p class="checkin-q-sub">Lo compararemos amablemente con el tono de tu escrito.</p>
+            <div class="pill-group big-step-pills" id="self-report-group">
+              <button type="button" class="pill-btn active" data-val="bien">Bien</button>
+              <button type="button" class="pill-btn" data-val="regular">Regular</button>
+              <button type="button" class="pill-btn" data-val="mal">Mal</button>
+              <button type="button" class="pill-btn" data-val="no_se">No sé</button>
+            </div>
+          </div>
+
+          <div id="checkin-step-4" class="checkin-step">
+            <div class="checkin-q-emoji">🌤️</div>
+            <h3 class="checkin-q-title serif-heading">¿Cómo describirías tu ánimo hoy?</h3>
+            <p class="checkin-q-sub">1 = Muy bajo · 5 = Muy positivo</p>
+            <div class="pill-group big-step-pills" id="valence-group">
+              <button type="button" class="pill-btn" data-val="1">1</button>
+              <button type="button" class="pill-btn" data-val="2">2</button>
+              <button type="button" class="pill-btn active" data-val="3">3</button>
+              <button type="button" class="pill-btn" data-val="4">4</button>
+              <button type="button" class="pill-btn" data-val="5">5</button>
+            </div>
+          </div>
+
+          <div id="checkin-step-5" class="checkin-step">
+            <div class="checkin-q-emoji">⚡</div>
+            <h3 class="checkin-q-title serif-heading">¿Qué nivel de energía física sentiste?</h3>
+            <p class="checkin-q-sub">1 = Agotamiento · 5 = Vitalidad alta</p>
+            <div class="pill-group big-step-pills" id="energy-group">
+              <button type="button" class="pill-btn" data-val="1">1</button>
+              <button type="button" class="pill-btn" data-val="2">2</button>
+              <button type="button" class="pill-btn active" data-val="3">3</button>
+              <button type="button" class="pill-btn" data-val="4">4</button>
+              <button type="button" class="pill-btn" data-val="5">5</button>
+            </div>
+          </div>
+
+          <div id="checkin-step-6" class="checkin-step">
+            <div class="checkin-q-emoji">🎒</div>
+            <h3 class="checkin-q-title serif-heading">¿Cuánta carga tuvo tu día?</h3>
+            <p class="checkin-q-sub">1 = Día ligero · 5 = Muy exigente</p>
+            <div class="pill-group big-step-pills" id="workload-group">
+              <button type="button" class="pill-btn" data-val="1">1</button>
+              <button type="button" class="pill-btn" data-val="2">2</button>
+              <button type="button" class="pill-btn active" data-val="3">3</button>
+              <button type="button" class="pill-btn" data-val="4">4</button>
+              <button type="button" class="pill-btn" data-val="5">5</button>
+            </div>
+          </div>
+
+          <div class="checkin-nav-bar">
+            <button type="button" id="checkin-back-btn" class="btn-secondary">← Atrás</button>
+            <div style="flex: 1;"></div>
+            <button type="button" id="checkin-next-btn" class="btn-primary">Siguiente →</button>
+            <button type="button" id="save-day-btn" class="btn-primary" style="display: none;">✓ Guardar Día</button>
+          </div>
+        </div>
+
+        <!-- ETAPA 3: POST-GUARDADO SERENO -->
+        <div id="hoy-stage-saved" style="display: none;">
+          <div id="saved-day-summary-box"></div>
+          <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+            <button type="button" id="saved-edit-btn" class="btn-secondary">✏️ Editar nota o respuestas</button>
+          </div>
+        </div>
+
+        <div id="alerts-container"></div>
+
+        <div id="hoy-learn-hint"></div>
+
+        <!-- Desplegable Discreto de Laya AI -->
+        <details id="laya-details-accordion" class="calm-accordion" style="margin-top: 1.25rem;">
+          <summary>✦ Ver perfil de hoy (Laya AI y metas)</summary>
+          <div class="calm-accordion-body">
+            <div id="laya-probs-content" style="font-size: 0.88rem; color: var(--text-tertiary);">
+              Guarda tu día para visualizar la clasificación de Laya AI.
+            </div>
+          </div>
+        </details>
+      </div>
+
+      <!-- Apuntes rápidos del día -->
+      <div class="card quick-notes-panel" id="quick-notes-panel">
+        <div class="quick-notes-head">
+          <div>
+            <div class="quick-chips-title">📝 Apuntes rápidos de hoy</div>
+            <div class="quick-notes-sub">Suelta un pensamiento breve; se guarda con su hora.</div>
+          </div>
+          <span class="badge-pill" id="quick-notes-count">0</span>
+        </div>
+
+        <div id="quick-chips-wrapper" class="quick-chips-wrapper" style="display: none;">
+          <div id="quick-chips-list" class="quick-chips-list"></div>
+        </div>
+        <div class="quick-notes-empty" id="quick-notes-empty">Aún no hay apuntes hoy. Escribe el primero aquí abajo.</div>
+
+        <div class="quick-input-row">
+          <span style="font-size: 1.05rem; opacity: 0.8;">📒</span>
+          <input type="text" id="quick-note-input" class="quick-input" placeholder="Nuevo apunte rápido: suelta un pensamiento breve al vuelo..." autocomplete="off">
+          <button id="quick-note-send-btn" class="quick-send-btn" title="Guardar apunte (+5 EXP)">↑</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== PESTAÑA: HISTORIAL ==================== -->
+    <section id="pane-historial" class="tab-pane">
+      <div class="today-header">
+        <div>
+          <h1 class="today-title serif-heading">Historial & Crónica</h1>
+          <div class="today-date">Toca cualquier día en el calendario para leerlo o editarlo</div>
+        </div>
+      </div>
+
+      <div class="card calendar-card">
+        <div class="calendar-header">
+          <button id="cal-prev-month-btn" class="cal-nav-btn" title="Mes anterior">◀</button>
+          <h3 id="cal-month-title" class="cal-month-title serif-heading">Mes</h3>
+          <button id="cal-next-month-btn" class="cal-nav-btn" title="Mes siguiente">▶</button>
+        </div>
+        <div class="cal-weekdays">
+          <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+        </div>
+        <div id="cal-days-grid" class="cal-grid"></div>
+        <div class="cal-legend">
+          <span><i class="cal-leg-dot mood-very-pos"></i> Muy positivo</span>
+          <span><i class="cal-leg-dot mood-pos"></i> Positivo</span>
+          <span><i class="cal-leg-dot mood-neutral"></i> Neutro</span>
+          <span><i class="cal-leg-dot mood-neg"></i> Tenso</span>
+          <span><i class="cal-leg-dot mood-very-neg"></i> Muy difícil</span>
+        </div>
+      </div>
+
+      <details class="calm-accordion card-style-accordion" open>
+        <summary>📜 Lista cronológica de escritos</summary>
+        <div class="calm-accordion-body" style="padding-top: 1rem;">
+          <div id="history-container">Cargando historial...</div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ==================== PESTAÑA: PATRONES ==================== -->
+    <section id="pane-patrones" class="tab-pane">
+      <div class="today-header">
+        <div>
+          <h1 class="today-title serif-heading">Patrones & Evolución</h1>
+          <div class="today-date">Observaciones exclusivas frente a tu propia línea base</div>
+        </div>
+
+        <div class="period-segmented">
+          <button type="button" class="period-pill-btn" data-days="7">7 días</button>
+          <button type="button" class="period-pill-btn" data-days="30">30 días</button>
+          <button type="button" class="period-pill-btn active" data-days="0">Todo</button>
+        </div>
+      </div>
+
+      <div class="stats-grid" id="baseline-stats-container"></div>
+
+      <div class="chart-container">
+        <div class="chart-controls">
+          <label class="chart-toggle"><input type="checkbox" id="chk-valence" checked><span style="color: var(--accent-blue); font-weight: 600;">● Ánimo</span></label>
+          <label class="chart-toggle"><input type="checkbox" id="chk-energy" checked><span style="color: var(--accent-indigo); font-weight: 600;">● Energía</span></label>
+          <label class="chart-toggle"><input type="checkbox" id="chk-sleep" checked><span style="color: #22c55e; font-weight: 600;">● Sueño (0h–10h)</span></label>
+          <label class="chart-toggle"><input type="checkbox" id="chk-workload" checked><span style="color: #ea580c; font-weight: 600;">● Carga</span></label>
+        </div>
+        <canvas id="patterns-canvas" class="chart-canvas"></canvas>
+      </div>
+
+      <div class="qwen-summary-card" style="margin-bottom: 1.25rem;">
+        <div class="qwen-title">
+          <span class="serif-heading" style="font-size: 1.05rem;">✦ Crónica de Qwen</span>
+          <span style="font-size: 0.74rem; font-weight: normal; color: var(--text-tertiary);" id="summary-engine-badge"></span>
+        </div>
+        <div id="qwen-summary-text" class="qwen-text">Cargando observaciones...</div>
+        <div style="margin-top: 1rem;">
+          <button id="refresh-summary-btn" class="btn-secondary" style="font-size: 0.82rem;">✦ Actualizar con Qwen 3.5</button>
+        </div>
+      </div>
+
+      <details id="patterns-dist-accordion" class="calm-accordion card-style-accordion" style="margin-bottom: 1rem;">
+        <summary>🌈 Distribución porcentual del ánimo</summary>
+        <div class="calm-accordion-body">
+          <div id="mood-distribution-container">Cargando distribución...</div>
+        </div>
+      </details>
+
+      <details id="patterns-radar-accordion" class="calm-accordion card-style-accordion">
+        <summary>🧭 Mapa Radar de Ejes Laya y cruce con tus metas</summary>
+        <div class="calm-accordion-body">
+          <div class="patterns-dual-grid">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div id="patterns-radar-subtitle" style="font-size: 0.8rem; color: var(--text-tertiary);">Porcentajes detectados por Laya</div>
+                <div class="mini-segmented">
+                  <button type="button" class="radar-mode-btn active" data-mode="laya">Ejes Laya</button>
+                  <button type="button" class="radar-mode-btn" data-mode="personal">Mis Metas</button>
+                </div>
+              </div>
+              <div style="display: flex; justify-content: center;">
+                <canvas id="patterns-radar-canvas" width="340" height="290" style="width: 100%; max-width: 340px; height: 290px;"></canvas>
+              </div>
+            </div>
+
+            <div>
+              <div style="font-weight: 700; font-size: 0.92rem; margin-bottom: 0.65rem;">Cruce frente a tus metas personales</div>
+              <div id="goal-cross-insights-box" class="goal-insights-list">Cargando...</div>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ==================== PESTAÑA: AUTOCONOCIMIENTO ==================== -->
+    <section id="pane-autoconocimiento" class="tab-pane">
+      <div class="today-header">
+        <div>
+          <h1 class="today-title serif-heading">Retos de Autoconocimiento</h1>
+          <div class="today-date">Exploraciones breves para ganar experiencia (+20 EXP) · Cero lenguaje clínico</div>
+        </div>
+      </div>
+
+      <div id="quizzes-grid-container" class="quizzes-grid" style="margin-bottom: 1.5rem;">Cargando retos...</div>
+
+      <details class="calm-accordion card-style-accordion">
+        <summary>🧭 Ver tu Radar Personal Combinado y resultados recientes</summary>
+        <div class="calm-accordion-body">
+          <div class="assessments-top-grid">
+            <div id="assessments-history-container">Cargando exploraciones...</div>
+            <div style="display: flex; flex-direction: column; align-items: center;">
+              <canvas id="assessments-radar-canvas" width="320" height="270" style="width: 100%; max-width: 320px; height: 270px;"></canvas>
+            </div>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- ==================== PESTAÑA: APRENDER ==================== -->
+    <section id="pane-aprender" class="tab-pane">
+      <div class="today-header">
+        <div>
+          <h1 class="today-title serif-heading">Aprender</h1>
+          <div class="today-date">Rutas breves de 3–4 minutos · Comprensión, nunca diagnóstico</div>
+        </div>
+        <div class="learn-header-actions">
+          <button type="button" id="learn-notebook-btn" class="btn-secondary learn-tool-btn">
+            📓 Libreta <span id="learn-notebook-count" class="learn-count">0</span>
+          </button>
+          <button type="button" id="learn-audio-btn" class="pixel-sq-btn" title="Activar o silenciar sonidos">🔊</button>
+        </div>
+      </div>
+
+      <div id="learn-recommendation"></div>
+
+      <div id="learn-map" class="learn-map">
+        <div class="learn-loading">Cargando rutas educativas...</div>
+      </div>
+
+      <div id="learn-lesson" class="learn-lesson" style="display: none;"></div>
+    </section>
+
+    <!-- ==================== PESTAÑA: AJUSTES ==================== -->
+    <section id="pane-ajustes" class="tab-pane">
+      <div class="today-header">
+        <div>
+          <h1 class="today-title serif-heading">Ajustes & Metas</h1>
+          <div class="today-date">Personaliza tu mundo 100% Local-First</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="serif-heading" style="margin-bottom: 0.75rem;">Apariencia Visual</h3>
+        <div class="theme-selector-grid">
+          <button type="button" class="theme-choice-card selected" data-theme-choice="light">
+            <div class="theme-preview light-prev"><div class="tp-bar"></div><div class="tp-card"></div></div>
+            <div>
+              <strong>📜 Pergamino Cozy (Claro)</strong>
+              <div style="font-size: 0.78rem; color: var(--text-tertiary);">Tonos crema cálidos y terracota</div>
+            </div>
+          </button>
+          <button type="button" class="theme-choice-card" data-theme-choice="dark">
+            <div class="theme-preview dark-prev"><div class="tp-bar"></div><div class="tp-card"></div></div>
+            <div>
+              <strong>🌌 Noche Estrellada (Oscuro)</strong>
+              <div style="font-size: 0.78rem; color: var(--text-tertiary);">Azul noche con destellos ámbar</div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.9rem;">
+          <div>
+            <h3 class="serif-heading">Tus Metas & Rutina</h3>
+            <p style="font-size: 0.85rem; color: var(--text-secondary);">Se cruzan con Laya AI y Qwen en cada análisis.</p>
+          </div>
+          <button id="reopen-onboarding-btn" class="btn-primary" style="padding: 0.5rem 1.1rem; font-size: 0.85rem;">🧭 Reajustar Metas</button>
+        </div>
+        <div id="settings-goals-summary">Cargando metas...</div>
+      </div>
+
+      <details class="calm-accordion card-style-accordion">
+        <summary>⚙️ Estado técnico del sistema y privacidad</summary>
+        <div class="calm-accordion-body">
+          <div id="settings-status-box" style="font-size: 0.88rem; line-height: 1.8; color: var(--text-secondary); margin-bottom: 0.75rem;">
+            Cargando estado...
+          </div>
+          <p id="settings-privacy-note" style="font-size: 0.84rem; color: var(--text-tertiary); line-height: 1.6;">
+            Todos tus escritos y modelos de IA (Laya y Qwen 3.5) residen en local dentro de SQLite. Cero nube.
+          </p>
+        </div>
+      </details>
+    </section>
+
+  </main>
+
+  <!-- Barra de Navegación Inferior Móvil/Estrecha (Cozy RPG Bottom Bar) -->
+  <nav class="mobile-bottom-nav">
+    <button type="button" class="mobile-nav-btn active" data-tab="hoy">
+      <span id="px-mob-hoy"></span>
+      <span>Hoy</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="historial">
+      <span id="px-mob-hist"></span>
+      <span>Historial</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="patrones">
+      <span id="px-mob-pat"></span>
+      <span>Patrones</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="autoconocimiento">
+      <span id="px-mob-retos"></span>
+      <span>Retos</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="aprender">
+      <span id="px-mob-learn"></span>
+      <span>Aprender</span>
+    </button>
+    <button type="button" class="mobile-nav-btn" data-tab="ajustes">
+      <span id="px-mob-aj"></span>
+      <span>Ajustes</span>
+    </button>
+  </nav>
+
+  <!-- ==================== MODAL CUENTA Y USUARIOS ==================== -->
+  <div id="account-modal" class="modal-overlay">
+    <div class="modal-box account-box">
+      <div class="sanc-header" style="margin-bottom: 1rem;">
+        <h2 class="serif-heading" style="font-size: 1.3rem;">Mi cuenta</h2>
+        <button type="button" id="account-close-btn" class="pixel-sq-btn" style="width: 34px; height: 34px;">✕</button>
+      </div>
+
+      <div id="account-summary"></div>
+
+      <div class="account-actions">
+        <button type="button" id="account-change-btn" class="btn-secondary">Cambiar contraseña</button>
+        <button type="button" id="account-logout-btn" class="btn-secondary">Cerrar sesión</button>
+      </div>
+
+      <div id="account-change-wrap" hidden>
+        <form id="account-change-form" class="account-form">
+          <label class="auth-field">Contraseña actual
+            <input id="account-current-pass" type="password" required autocomplete="current-password" maxlength="128">
+          </label>
+          <label class="auth-field">Nueva contraseña
+            <input id="account-new-pass" type="password" minlength="10" maxlength="128" required autocomplete="new-password">
+          </label>
+          <label class="auth-field">Repite la nueva
+            <input id="account-new-pass2" type="password" minlength="10" maxlength="128" required autocomplete="new-password">
+          </label>
+          <div id="account-change-error" class="auth-error" role="alert" hidden></div>
+          <button type="submit" class="btn-primary">Guardar contraseña</button>
+        </form>
+      </div>
+
+      <section id="account-cloud-section" hidden>
+        <h3 class="serif-heading account-section-title">Bóveda Cifrada Zero-Knowledge</h3>
+        <div class="account-actions" style="flex-wrap: wrap;">
+          <button type="button" id="account-vault-change-btn" class="btn-secondary">Cambiar frase</button>
+          <button type="button" id="account-vault-recovery-btn" class="btn-secondary">Ver llave de recuperación</button>
+          <button type="button" id="account-export-btn" class="btn-secondary">Exportar respaldo (.json)</button>
+          <button type="button" id="account-import-btn" class="btn-secondary">Importar respaldo (.json)</button>
+          <input type="file" id="account-import-file" accept=".json,application/json" hidden>
+        </div>
+
+        <div id="account-vault-change-wrap" hidden>
+          <form id="account-vault-change-form" class="account-form">
+            <label class="auth-field">Frase actual
+              <input id="vault-chg-cur" type="password" required maxlength="128">
+            </label>
+            <label class="auth-field">Nueva frase (mín. 8 caracteres)
+              <input id="vault-chg-new" type="password" minlength="8" required maxlength="128">
+            </label>
+            <label class="auth-field">Repite la nueva frase
+              <input id="vault-chg-new2" type="password" minlength="8" required maxlength="128">
+            </label>
+            <div id="vault-chg-error" class="auth-error" role="alert" hidden></div>
+            <button type="submit" class="btn-primary">Actualizar frase de bóveda</button>
+          </form>
+        </div>
+
+        <div id="account-vault-recovery-wrap" hidden>
+          <form id="account-vault-recovery-form" class="account-form">
+            <label class="auth-field">Confirma tu frase de bóveda
+              <input id="vault-rec-pass" type="password" required maxlength="128">
+            </label>
+            <div id="vault-rec-error" class="auth-error" role="alert" hidden></div>
+            <button type="submit" class="btn-primary">Mostrar llave</button>
+          </form>
+          <div id="account-vault-rec-out" class="vault-recovery-box" hidden></div>
+        </div>
+      </section>
+
+      <section id="users-admin-section" hidden>
+        <h3 class="serif-heading account-section-title">Usuarios del diario</h3>
+        <div id="users-list" class="users-list"></div>
+        <div id="user-temp-password" class="user-temp-password" hidden></div>
+
+        <h4 class="account-subtitle">Crear usuario</h4>
+        <form id="user-create-form" class="account-form">
+          <label class="auth-field">Nombre visible
+            <input id="user-create-name" maxlength="60" required>
+          </label>
+          <label class="auth-field">Usuario
+            <input id="user-create-username" maxlength="32" required spellcheck="false">
+          </label>
+          <label class="auth-field">Contraseña temporal
+            <input id="user-create-pass" type="password" minlength="10" maxlength="128" required autocomplete="new-password">
+          </label>
+          <label class="auth-field">Rol
+            <select id="user-create-role">
+              <option value="user">Usuario</option>
+              <option value="admin">Administrador</option>
+            </select>
+          </label>
+          <div id="user-create-result" class="account-result" hidden></div>
+          <button type="submit" class="btn-primary">Crear usuario</button>
+        </form>
+      </section>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL CÓDIGO QR (ACCESO CELULAR) ==================== -->
+  <div id="qr-modal" class="modal-overlay">
+    <div class="modal-box qr-modal-box">
+      <div class="sanc-header" style="margin-bottom: 0.75rem;">
+        <h2 class="serif-heading" style="font-size: 1.25rem;">📱 Abrir en tu celular</h2>
+        <button id="qr-close-btn" class="pixel-sq-btn" style="width: 34px; height: 34px;">✕</button>
+      </div>
+      <div id="qr-network-tabs" class="sanc-segmented-tabs" style="margin-bottom: 0.9rem;"></div>
+      <div id="qr-svg-container" class="qr-svg-wrap">Generando código QR local...</div>
+      <div id="qr-url-row" class="qr-url-row">
+        <code id="qr-url-display" class="qr-url-code">--</code>
+        <button type="button" id="qr-copy-btn" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.78rem;">Copiar</button>
+      </div>
+      <p id="qr-hint-text" class="qr-hint-text"></p>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL SANTUARIO & TIENDA RPG ==================== -->
+  <div id="sanctuary-modal" class="modal-overlay">
+    <div class="modal-box sanctuary-box">
+      <div class="sanc-header">
+        <div style="display: flex; align-items: center; gap: 0.55rem;">
+          <span id="sanc-header-icon"></span>
+          <h2 class="serif-heading" style="font-size: 1.3rem;">Santuario & Tienda RPG</h2>
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span id="sanc-coins-badge" class="coin-pill">🪙 35</span>
+          <button id="sanctuary-close-btn" class="pixel-sq-btn" style="width: 34px; height: 34px;">✕</button>
+        </div>
+      </div>
+
+      <div class="sanc-segmented-tabs">
+        <button type="button" class="sanc-tab-btn active" data-sanctab="mascota">Mascota</button>
+        <button type="button" class="sanc-tab-btn" data-sanctab="tienda">Tienda</button>
+      </div>
+
+      <!-- Pestaña Mascota -->
+      <div id="sanc-pane-mascota">
+        <div class="sanc-stage-card">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+              <strong id="sanc-pet-name" style="font-size: 1.05rem;">Slime</strong>
+              <button type="button" id="sanc-rename-btn" class="sanc-edit-name-btn" title="Cambiar nombre">✏️</button>
+            </div>
+            <span id="sanc-pet-level" class="sanc-lvl-pill">Nv. 1 · Compañero</span>
+          </div>
+
+          <div class="sanc-slime-viewport">
+            <div id="sanc-slime-stage"></div>
+            <div class="slime-ground-shadow"></div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.35rem;">
+            <span id="sanc-pet-variant-label">Slime Sereno</span>
+            <span id="sanc-bond-text">68 / 100 Vínculo</span>
+          </div>
+          <div class="sanc-bar-track"><div id="sanc-bond-fill" class="sanc-bar-fill fill-bond" style="width: 68%;"></div></div>
+        </div>
+
+        <div class="sanc-stat-pill">
+          <div class="sanc-stat-row"><span>Saciedad</span><strong id="sanc-pct-satiety">55%</strong></div>
+          <div class="sanc-bar-track"><div id="sanc-bar-satiety" class="sanc-bar-fill fill-satiety" style="width: 55%;"></div></div>
+        </div>
+        <div class="sanc-stat-pill">
+          <div class="sanc-stat-row"><span>Energía</span><strong id="sanc-pct-energy">75%</strong></div>
+          <div class="sanc-bar-track"><div id="sanc-bar-energy" class="sanc-bar-fill fill-energy" style="width: 75%;"></div></div>
+        </div>
+        <div class="sanc-stat-pill">
+          <div class="sanc-stat-row"><span>Ánimo</span><strong id="sanc-pct-mood">72%</strong></div>
+          <div class="sanc-bar-track"><div id="sanc-bar-mood" class="sanc-bar-fill fill-mood" style="width: 72%;"></div></div>
+        </div>
+
+        <div class="sanc-actions-grid">
+          <button type="button" class="sanc-action-tile" onclick="SanctuaryComponent.doAction('pet')">
+            <strong>♥ Acariciar</strong>
+            <small>+Ánimo</small>
+          </button>
+          <button type="button" class="sanc-action-tile" onclick="SanctuaryComponent.doAction('rest')">
+            <strong>🌙 Dormir</strong>
+            <small>Recarga energía</small>
+          </button>
+          <button type="button" class="sanc-action-tile" onclick="SanctuaryComponent.doAction('snack')">
+            <strong>🍪 Snack</strong>
+            <small>Gratis c/10m</small>
+          </button>
+        </div>
+
+        <div style="margin-top: 1.15rem;">
+          <div style="font-size: 0.85rem; font-weight: 700; margin-bottom: 0.5rem;">Despensa (toca para alimentar)</div>
+          <div id="sanc-pantry-list" class="pantry-grid"></div>
+        </div>
+      </div>
+
+      <!-- Pestaña Tienda -->
+      <div id="sanc-pane-tienda" style="display: none;">
+        <p style="font-size: 0.84rem; color: var(--text-secondary); margin-bottom: 1rem;">
+          Canjea las monedas que ganas por tu constancia en el diario. Todo es 100% offline.
+        </p>
+        <div id="sanc-shop-list" style="display: flex; flex-direction: column; gap: 0.65rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MODAL ONBOARDING PASO A PASO ==================== -->
+  <div id="onboarding-overlay" class="modal-overlay onboarding-overlay">
+    <div class="onboarding-card">
+      <div class="ob-top-bar">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem;">
+          <span class="ob-badge">✨ Bienvenido a Diario RPG</span>
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <span id="ob-step-indicator" style="font-size: 0.8rem; font-weight: 600; color: var(--text-tertiary);">Paso 1 de 4</span>
+            <button id="ob-skip-btn" class="ob-skip-link">Omitir por ahora</button>
+          </div>
+        </div>
+        <div class="ob-progress-track">
+          <div id="ob-progress-fill" class="ob-progress-fill" style="width: 25%;"></div>
+        </div>
+      </div>
+
+      <div class="ob-body">
+        <div id="ob-step-1" class="ob-step active">
+          <h2 class="ob-title serif-heading">Tu mañana y hábitos diarios</h2>
+          <p class="ob-subtitle">Conocer tus rutinas nos ayuda a detectar patrones reales sin juzgar.</p>
+          <div class="ob-question-block">
+            <label class="ob-q-label">1. ¿Qué es lo primero que sueles hacer en la mañana?</label>
+            <div class="ob-options-grid ob-single-group" data-field="morning_habit">
+              <button type="button" class="ob-option-card" data-val="celular"><span class="ob-ico">📱</span><span>Ver celular</span></button>
+              <button type="button" class="ob-option-card selected" data-val="cafe"><span class="ob-ico">☕</span><span>Café / Desayuno</span></button>
+              <button type="button" class="ob-option-card" data-val="ejercicio"><span class="ob-ico">🏃</span><span>Moverme / Estirar</span></button>
+              <button type="button" class="ob-option-card" data-val="planificar"><span class="ob-ico">📝</span><span>Planificar mi día</span></button>
+              <button type="button" class="ob-option-card" data-val="otro"><span class="ob-ico">✨</span><span>Otro ritmo</span></button>
+            </div>
+          </div>
+          <div class="ob-question-block">
+            <label class="ob-q-label">2. ¿Qué hábitos te gustaría cuidar o cambiar? <small>(Elige varios)</small></label>
+            <div class="ob-options-grid ob-multi-group" data-field="habits_to_improve">
+              <button type="button" class="ob-option-card" data-val="dormir_tarde"><span class="ob-ico">🌙</span><span>Dormir tarde</span></button>
+              <button type="button" class="ob-option-card" data-val="redes_sociales"><span class="ob-ico">📲</span><span>Redes de noche</span></button>
+              <button type="button" class="ob-option-card" data-val="comer_deshoras"><span class="ob-ico">🍽️</span><span>Comer a deshoras</span></button>
+              <button type="button" class="ob-option-card" data-val="procrastinar"><span class="ob-ico">⏳</span><span>Procrastinar</span></button>
+              <button type="button" class="ob-option-card" data-val="olvidar_pausas"><span class="ob-ico">🔋</span><span>Olvidar pausas</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ob-step-2" class="ob-step">
+          <h2 class="ob-title serif-heading">Descanso y fuentes de peso</h2>
+          <p class="ob-subtitle">Así sabremos qué señales observar cuando escribas sobre tu semana.</p>
+          <div class="ob-question-block">
+            <label class="ob-q-label">3. ¿Qué te gustaría mejorar de tu sueño?</label>
+            <div class="ob-options-grid ob-single-group" data-field="sleep_improvement_goal">
+              <button type="button" class="ob-option-card selected" data-val="dormir_mas_horas"><span class="ob-ico">🛏️</span><span>Dormir más horas</span></button>
+              <button type="button" class="ob-option-card" data-val="horario_fijo"><span class="ob-ico">⏰</span><span>Horario constante</span></button>
+              <button type="button" class="ob-option-card" data-val="dejar_pantallas"><span class="ob-ico">📵</span><span>Soltar pantallas</span></button>
+              <button type="button" class="ob-option-card" data-val="despertar_descansado"><span class="ob-ico">🌅</span><span>Despertar fresco</span></button>
+            </div>
+          </div>
+          <div class="ob-question-block">
+            <label class="ob-q-label">4. ¿Qué áreas te han generado más peso últimamente? <small>(Elige varias)</small></label>
+            <div class="ob-options-grid ob-multi-group" data-field="stress_areas">
+              <button type="button" class="ob-option-card" data-val="trabajo_estudio"><span class="ob-ico">💼</span><span>Trabajo / Estudio</span></button>
+              <button type="button" class="ob-option-card" data-val="familia_pareja"><span class="ob-ico">💞</span><span>Familia / Pareja</span></button>
+              <button type="button" class="ob-option-card" data-val="economia"><span class="ob-ico">💰</span><span>Economía</span></button>
+              <button type="button" class="ob-option-card" data-val="salud"><span class="ob-ico">💪</span><span>Salud física</span></button>
+              <button type="button" class="ob-option-card" data-val="carga_mental"><span class="ob-ico">🧠</span><span>Carga mental</span></button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ob-step-3" class="ob-step">
+          <h2 class="ob-title serif-heading">Tu propósito y meta diaria</h2>
+          <p class="ob-subtitle">Define un compromiso realista contigo mismo para mantener el ritmo.</p>
+          <div class="ob-question-block">
+            <label class="ob-q-label">5. ¿Qué esperas lograr principalmente?</label>
+            <div class="ob-options-grid ob-single-group" data-field="personal_objective">
+              <button type="button" class="ob-option-card" data-val="control_emocional"><span class="ob-ico">🌊</span><span>Equilibrio emocional</span></button>
+              <button type="button" class="ob-option-card" data-val="mas_energia"><span class="ob-ico">⚡</span><span>Más energía</span></button>
+              <button type="button" class="ob-option-card" data-val="limites_sanos"><span class="ob-ico">🛡️</span><span>Límites sanos</span></button>
+              <button type="button" class="ob-option-card selected" data-val="constancia"><span class="ob-ico">🗓️</span><span>Constancia</span></button>
+            </div>
+          </div>
+          <div class="ob-question-block">
+            <label class="ob-q-label">6. Fija tu Meta Diaria de reflexión:</label>
+            <div class="ob-options-grid ob-single-group" data-field="daily_goal_level">
+              <button type="button" class="ob-option-card" data-val="facil"><span class="ob-ico">🌱</span><span>Fácil</span><small>5 min / día</small></button>
+              <button type="button" class="ob-option-card selected" data-val="normal"><span class="ob-ico">🌿</span><span>Normal</span><small>10 min / día</small></button>
+              <button type="button" class="ob-option-card" data-val="serio"><span class="ob-ico">🔥</span><span>Serio</span><small>15 min / día</small></button>
+              <button type="button" class="ob-option-card" data-val="intensivo"><span class="ob-ico">🚀</span><span>Intensivo</span><small>20+ min / día</small></button>
+            </div>
+          </div>
+        </div>
+
+        <div id="ob-step-4" class="ob-step">
+          <h2 class="ob-title serif-heading" style="text-align: center;">Tu Mapa de Enfoque Inicial</h2>
+          <p class="ob-subtitle" style="text-align: center;">Calculado a partir de tus prioridades cotidianas (sin etiquetas clínicas)</p>
+          <div style="display: flex; justify-content: center; margin: 0.75rem 0;">
+            <canvas id="onboarding-radar-canvas" width="330" height="270" style="width: 100%; max-width: 330px; height: 270px;"></canvas>
+          </div>
+          <div id="ob-radar-message" class="ob-radar-msg-box"></div>
+        </div>
+      </div>
+
+      <div id="ob-footer-nav" class="ob-footer">
+        <button id="ob-prev-btn" class="btn-secondary">← Anterior</button>
+        <button id="ob-next-btn" class="btn-primary">Siguiente →</button>
+      </div>
+
+      <div id="ob-finish-bar" class="ob-footer" style="display: none; justify-content: center;">
+        <button id="ob-finish-btn" class="btn-primary" style="padding: 0.75rem 2.2rem;">Comenzar mi Diario ✨</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle del Historial -->
+  <div id="detail-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 id="modal-date-title" class="serif-heading" style="font-size: 1.25rem;">Detalle del Día</h2>
+        <button id="modal-close-btn" class="btn-secondary" style="padding: 0.3rem 0.7rem;">✕</button>
+      </div>
+      <div id="modal-body-content"></div>
+    </div>
+  </div>
+
+  <!-- Modal Autoevaluación -->
+  <div id="quiz-modal" class="modal-overlay">
+    <div class="modal-box">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+        <h2 id="quiz-modal-title" class="serif-heading" style="font-size: 1.25rem;">Reto de Autoconocimiento</h2>
+        <button id="quiz-modal-close-btn" class="btn-secondary" style="padding: 0.3rem 0.7rem;">✕</button>
+      </div>
+      <div id="quiz-modal-body"></div>
+      <div id="quiz-modal-result" style="display: none;"></div>
+      <div style="margin-top: 1.25rem; display: flex; justify-content: flex-end;">
+        <button id="quiz-submit-btn" class="btn-primary">Ver mi reflejo personal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drawer Lateral: Modo Desarrollador -->
+  <div id="dev-drawer-backdrop" class="dev-drawer-backdrop"></div>
+  <aside id="dev-drawer" class="dev-drawer">
+    <div class="dev-drawer-header">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.15rem;">🛠️</span>
+          <h2 class="serif-heading" style="font-size: 1.15rem;">Modo Desarrollador</h2>
+        </div>
+        <div style="font-size: 0.78rem; color: var(--text-tertiary); margin-top: 0.2rem;" id="dev-model-status-badge">Laya AI</div>
+      </div>
+      <button id="dev-drawer-close-btn" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.85rem;">✕</button>
+    </div>
+
+    <div class="dev-tabs">
+      <button class="dev-tab-btn active" data-devtab="inferencia">1. Inferencia</button>
+      <button class="dev-tab-btn" data-devtab="cuestionario">2. Pesos</button>
+      <button class="dev-tab-btn" data-devtab="simulador">3. Simulador</button>
+      <button class="dev-tab-btn" data-devtab="schema">4. Schema JSON</button>
+    </div>
+
+    <div class="dev-drawer-body">
+      <div id="devtab-pane-inferencia" class="devtab-pane active">
+        <div class="dev-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span class="dev-section-title">Métricas de Ejecución</span>
+            <span id="dev-latency-badge" class="dev-tag">-- ms</span>
+          </div>
+          <div style="font-size: 0.82rem; color: var(--text-secondary); line-height: 1.6;" id="dev-metrics-summary">Sin inferencias registradas aún.</div>
+        </div>
+        <div class="dev-card">
+          <span class="dev-section-title">Texto Inyectado a Laya</span>
+          <pre id="dev-input-text-box" class="dev-code-block" style="max-height: 140px; overflow-y: auto; white-space: pre-wrap; margin-top: 0.4rem;">--</pre>
+        </div>
+        <div class="dev-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <span class="dev-section-title">Cálculo Matemático de Valencia</span>
+            <span id="dev-valence-score-badge" class="dev-tag">Score: --</span>
+          </div>
+          <div id="dev-valence-steps-container"></div>
+        </div>
+        <div class="dev-card">
+          <span class="dev-section-title">Probabilidades por Pregunta</span>
+          <div id="dev-questions-breakdown-container" style="margin-top: 0.6rem;"></div>
+        </div>
+      </div>
+
+      <div id="devtab-pane-cuestionario" class="devtab-pane">
+        <div id="dev-questionnaire-weights-container"></div>
+      </div>
+
+      <div id="devtab-pane-simulador" class="devtab-pane">
+        <div class="dev-card">
+          <span class="dev-section-title">Probar texto en vivo</span>
+          <textarea id="dev-sim-input" class="day-textarea" style="min-height: 90px; background: var(--bg-card-subtle); padding: 0.6rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 0.92rem;" placeholder="Escribe una frase para probar con Laya..."></textarea>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+            <span id="dev-sim-status" style="font-size: 0.8rem; color: var(--text-tertiary);">Listo</span>
+            <button id="dev-sim-run-btn" class="btn-primary" style="padding: 0.45rem 1rem; font-size: 0.85rem;">⚡ Evaluar</button>
+          </div>
+        </div>
+        <div id="dev-sim-results-container"></div>
+      </div>
+
+      <div id="devtab-pane-schema" class="devtab-pane">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <span class="dev-section-title">Preguntas Laya</span>
+          <button id="dev-copy-schema-btn" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem;">Copiar JSON</button>
+        </div>
+        <pre id="dev-schema-json-box" class="dev-code-block" style="max-height: 500px; overflow-y: auto;">Cargando...</pre>
+      </div>
+    </div>
+  </aside>
+
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Modal de la Libreta de Aprender -->
+  <div id="learn-notebook-modal" class="modal-overlay">
+    <div class="modal-box learn-notebook-box">
+      <div class="learn-notebook-head">
+        <div>
+          <h3 class="serif-heading">📓 Libreta de Aprender</h3>
+          <p class="learn-notebook-sub">Tus reflexiones quedan en local. Puedes copiarlas para llevarlas a terapia o releerlas cuando quieras.</p>
+        </div>
+        <button type="button" id="learn-notebook-close-btn" class="pixel-sq-btn" title="Cerrar">✕</button>
+      </div>
+      <div id="learn-notebook-list" class="learn-notebook-list"></div>
+      <div class="learn-notebook-actions">
+        <button type="button" id="learn-notebook-copy-btn" class="btn-secondary">Copiar todo</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/vault_crypto.js"></script>
+  <script src="js/ml/syntax_features.js"></script>
+  <script src="js/ml/calibration_math.js"></script>
+  <script src="js/ml/suggestion_engine.js"></script>
+  <script src="js/client_engine.js"></script>
+  <script src="js/firebase_backend.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/components/pixel_sprites.js"></script>
+  <script src="js/components/radar_chart.js"></script>
+  <script src="js/components/sanctuary.js"></script>
+  <script src="js/components/onboarding.js"></script>
+  <script src="js/components/assessments.js"></script>
+  <script src="js/components/quick_notes.js"></script>
+  <script src="js/components/day_editor.js"></script>
+  <script src="js/components/history.js"></script>
+  <script src="js/components/patterns.js"></script>
+  <script src="js/components/dev_mode.js"></script>
+  <script src="js/components/learn_audio.js"></script>
+  <script src="js/components/learn_dial.js"></script>
+  <script src="js/components/learn_notebook.js"></script>
+  <script src="js/components/learn_lesson.js"></script>
+  <script src="js/components/learn_map.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

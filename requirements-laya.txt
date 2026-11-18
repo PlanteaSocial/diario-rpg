@@ -1,0 +1,3 @@
+# Motor de clasificación Laya (opcional, pesado).
+# Sin este archivo la app usa backend/services/laya_fallback.py (heurística local).
+laya

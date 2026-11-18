@@ -1,0 +1,11 @@
+# Dependencias base de Diario RPG (Linux / macOS / Windows)
+fastapi>=0.110
+uvicorn>=0.27
+pydantic>=2.6
+requests>=2.31
+qrcode>=7.4
+argon2-cffi>=23.1
+
+# Opcional: clasificador Laya real (arrastra torch y ~2 GB).
+# Instálalo solo si quieres el modelo completo:
+#   .venv/bin/pip install -r requirements-laya.txt

@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Solo para pruebas (starlette.testclient)
+httpx2

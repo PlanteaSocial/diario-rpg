@@ -1,0 +1,392 @@
+{
+  "version": 1,
+  "updated_at": "2026-11-16",
+  "tracks": [
+    {
+      "id": "tdah",
+      "title": "Entender el TDAH",
+      "subtitle": "Cómo se siente por dentro, más allá de los mitos.",
+      "icon": "🧠",
+      "accent": "#6366f1",
+      "lessons": [
+        {
+          "id": "tdah_1",
+          "track_id": "tdah",
+          "level": 1,
+          "title": "Mito o realidad",
+          "subtitle": "Contrasta tres ideas muy repetidas.",
+          "minutes": 3,
+          "exp": 25,
+          "coins": 8,
+          "steps": [
+            {
+              "type": "myth",
+              "id": "tdah_1_s1",
+              "statement": "El TDAH es solo falta de voluntad o pereza.",
+              "is_myth": true,
+              "explanation": "El TDAH es una condición del neurodesarrollo que afecta la [[función ejecutiva]]: iniciar, organizar y sostener tareas. No es un problema de carácter.",
+              "terms": ["TDAH", "función ejecutiva"]
+            },
+            {
+              "type": "myth",
+              "id": "tdah_1_s2",
+              "statement": "Una persona con TDAH puede concentrarse muchísimo en algo que le interesa.",
+              "is_myth": false,
+              "explanation": "La atención no es uniforme: puede haber hiperfoco en temas que activan interés y mucha dificultad para tareas poco estimulantes. Eso no contradice la [[inatención]].",
+              "terms": ["TDAH", "inatención"]
+            },
+            {
+              "type": "myth",
+              "id": "tdah_1_s3",
+              "statement": "El TDAH desaparece por completo al llegar a la adultez.",
+              "is_myth": true,
+              "explanation": "Puede cambiar de forma: la [[hiperactividad]] motora se vuelve inquietud interna y fricción para empezar. Muchas personas siguen necesitando apoyos.",
+              "terms": ["hiperactividad", "función ejecutiva"]
+            }
+          ]
+        },
+        {
+          "id": "tdah_2",
+          "track_id": "tdah",
+          "level": 2,
+          "title": "Dos caras frecuentes",
+          "subtitle": "Clasifica señales sin diagnosticar a nadie.",
+          "minutes": 3,
+          "exp": 25,
+          "coins": 8,
+          "steps": [
+            {
+              "type": "classify",
+              "id": "tdah_2_s1",
+              "prompt": "Clasifica cada experiencia en el grupo que mejor la describe.",
+              "buckets": [
+                { "id": "inatencion", "label": "Inatención" },
+                { "id": "hiper", "label": "Hiperactividad / impulsividad" }
+              ],
+              "items": [
+                { "id": "i1", "text": "Pierde objetos con frecuencia.", "bucket": "inatencion", "hint": "La distracción deja cosas en el camino." },
+                { "id": "i2", "text": "Le cuesta esperar su turno.", "bucket": "hiper", "hint": "La impulsividad empuja a actuar antes de tiempo." },
+                { "id": "i3", "text": "Se distrae con ruidos del fondo.", "bucket": "inatencion", "hint": "El filtrado de estímulos compite con la tarea." },
+                { "id": "i4", "text": "Siente inquietud interna aunque esté sentado.", "bucket": "hiper", "hint": "La hiperactividad también puede ser silenciosa." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "tdah_3",
+          "track_id": "tdah",
+          "level": 3,
+          "title": "La mochila invisible",
+          "subtitle": "Lee las pistas antes de responder.",
+          "minutes": 4,
+          "exp": 30,
+          "coins": 10,
+          "steps": [
+            {
+              "type": "scenario",
+              "id": "tdah_3_s1",
+              "title": "La mochila invisible",
+              "sentences": [
+                "Ana revisa tres veces su mochila antes de salir.",
+                "En clase se queda quieta y sonríe; nadie nota el esfuerzo que le cuesta seguir el hilo.",
+                "Al llegar a casa se derrumba y no puede empezar la tarea."
+              ],
+              "key_index": 1,
+              "question": "¿Qué explica mejor lo que ocurre?",
+              "options": [
+                "Que no le importa el colegio.",
+                "Que está usando [[masking]] y llega agotada de sostener la fachada.",
+                "Que tiene un problema de disciplina."
+              ],
+              "answer": 1,
+              "explanation": "El [[masking]] es el esfuerzo de ocultar la dificultad para encajar. Se ve como calma por fuera y un costo enorme por dentro.",
+              "terms": ["masking", "función ejecutiva"]
+            }
+          ]
+        },
+        {
+          "id": "tdah_4",
+          "track_id": "tdah",
+          "level": 4,
+          "title": "Tu fricción cotidiana",
+          "subtitle": "Una reflexión breve y una descarga creativa.",
+          "minutes": 4,
+          "exp": 30,
+          "coins": 12,
+          "steps": [
+            {
+              "type": "reflect",
+              "id": "tdah_4_s1",
+              "prompt": "¿Qué tarea cotidiana te genera más fricción para empezar y qué pequeño paso la haría más fácil?",
+              "placeholder": "Ej.: abrir el correo me paraliza; podría empezar solo leyendo el primer mensaje durante dos minutos.",
+              "draw": true,
+              "draw_prompt": "Dibuja cómo se siente esa fricción. No tiene que ser bonito."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "estres",
+      "title": "Estrés y desgaste",
+      "subtitle": "Distinguir un día pesado de una carga sostenida.",
+      "icon": "🌿",
+      "accent": "#16a34a",
+      "lessons": [
+        {
+          "id": "estres_1",
+          "track_id": "estres",
+          "level": 1,
+          "title": "Mito o realidad",
+          "subtitle": "Tres frases que conviene revisar.",
+          "minutes": 3,
+          "exp": 25,
+          "coins": 8,
+          "steps": [
+            {
+              "type": "myth",
+              "id": "estres_1_s1",
+              "statement": "El cansancio puntual y el desgaste sostenido son exactamente lo mismo.",
+              "is_myth": true,
+              "explanation": "El cansancio puntual se recupera con descanso. El [[desgaste sostenido]] se acumula durante semanas y no se resuelve con una sola tarde libre.",
+              "terms": ["desgaste sostenido"]
+            },
+            {
+              "type": "myth",
+              "id": "estres_1_s2",
+              "statement": "Una tarde de descanso arregla semanas de sobrecarga.",
+              "is_myth": true,
+              "explanation": "El descanso ayuda, pero la [[carga mental]] sostenida necesita cambios de ritmo y límites, no solo una pausa aislada.",
+              "terms": ["carga mental", "desgaste sostenido"]
+            },
+            {
+              "type": "myth",
+              "id": "estres_1_s3",
+              "statement": "Poner un límite a tiempo puede prevenir el desgaste.",
+              "is_myth": false,
+              "explanation": "Los límites pequeños y tempranos reducen la acumulación. No son un castigo para otros: son mantenimiento para ti.",
+              "terms": ["desgaste sostenido"]
+            }
+          ]
+        },
+        {
+          "id": "estres_2",
+          "track_id": "estres",
+          "level": 2,
+          "title": "Señales que se acumulan",
+          "subtitle": "Clasifica sin juzgarte.",
+          "minutes": 3,
+          "exp": 25,
+          "coins": 8,
+          "steps": [
+            {
+              "type": "classify",
+              "id": "estres_2_s1",
+              "prompt": "Clasifica cada situación.",
+              "buckets": [
+                { "id": "puntual", "label": "Cansancio puntual" },
+                { "id": "sostenido", "label": "Desgaste sostenido" }
+              ],
+              "items": [
+                { "id": "e1", "text": "Terminas un día intenso y duermes bien.", "bucket": "puntual", "hint": "El cuerpo recupera cuando hay descanso real." },
+                { "id": "e2", "text": "Llevas semanas irritable y el fin de semana no alcanza.", "bucket": "sostenido", "hint": "La recuperación ya no llega con una pausa corta." },
+                { "id": "e3", "text": "Necesitas un día tranquilo después de una entrega.", "bucket": "puntual", "hint": "Es una respuesta esperable a un esfuerzo concreto." },
+                { "id": "e4", "text": "Todo cuesta el doble incluso en días libres.", "bucket": "sostenido", "hint": "La carga sigue presente fuera del foco de estrés." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "estres_3",
+          "track_id": "estres",
+          "level": 3,
+          "title": "El domingo que pesa",
+          "subtitle": "Encuentra la pista clave en el relato.",
+          "minutes": 4,
+          "exp": 30,
+          "coins": 10,
+          "steps": [
+            {
+              "type": "scenario",
+              "id": "estres_3_s1",
+              "title": "El domingo que pesa",
+              "sentences": [
+                "Luis duerme hasta tarde el domingo.",
+                "Aun así, desde el mediodía siente un nudo al pensar en la semana.",
+                "El lunes llega agotado, como si no hubiera descansado."
+              ],
+              "key_index": 1,
+              "question": "¿Qué señal aparece en el relato?",
+              "options": [
+                "Que el domingo no sirve para descansar.",
+                "Que la anticipación de la semana ya está consumiendo energía.",
+                "Que necesita dormir más horas."
+              ],
+              "answer": 1,
+              "explanation": "La [[carga mental]] también trabaja antes de que ocurra el evento. Anticipar puede agotar más que la tarea misma.",
+              "terms": ["carga mental"]
+            },
+            {
+              "type": "order",
+              "id": "estres_3_s2",
+              "prompt": "Ordena un cierre amable para soltar la semana antes del domingo.",
+              "correct": [
+                "Elegir una sola prioridad para el lunes",
+                "Anotar lo que no depende de ti",
+                "Reservar diez minutos sin pantallas"
+              ],
+              "distractors": [
+                "Revisar el correo toda la noche",
+                "Prometerte hacerlo todo"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "estres_4",
+          "track_id": "estres",
+          "level": 4,
+          "title": "Tu termómetro de carga",
+          "subtitle": "Reflexión y descarga creativa.",
+          "minutes": 4,
+          "exp": 30,
+          "coins": 12,
+          "steps": [
+            {
+              "type": "reflect",
+              "id": "estres_4_s1",
+              "prompt": "¿Qué señal temprana te avisa que estás acumulando carga? ¿Qué podrías soltar esta semana?",
+              "placeholder": "Ej.: me despierto pensando en pendientes; podría pedir una prórroga pequeña o cerrar una tarea hoy.",
+              "draw": true,
+              "draw_prompt": "Dibuja tu nivel de carga como un termómetro o un paisaje."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sueno",
+      "title": "Sueño y descanso",
+      "subtitle": "Ritmo circadiano, pantallas y recuperación real.",
+      "icon": "🌙",
+      "accent": "#0284c7",
+      "lessons": [
+        {
+          "id": "sueno_1",
+          "track_id": "sueno",
+          "level": 1,
+          "title": "Mito o realidad",
+          "subtitle": "Lo que sí sabemos sobre dormir.",
+          "minutes": 3,
+          "exp": 25,
+          "coins": 8,
+          "steps": [
+            {
+              "type": "myth",
+              "id": "sueno_1_s1",
+              "statement": "Dormir menos de 6 horas se compensa durmiendo más el fin de semana.",
+              "is_myth": true,
+              "explanation": "El fin de semana ayuda un poco, pero no borra la deuda ni el efecto sobre el [[ritmo circadiano]]. La regularidad importa.",
+              "terms": ["ritmo circadiano", "higiene del sueño"]
+            },
+            {
+              "type": "myth",
+              "id": "sueno_1_s2",
+              "statement": "La luz del celular antes de dormir puede retrasar el ritmo circadiano.",
+              "is_myth": false,
+              "explanation": "La luz brillante por la noche envía señales de día al cerebro y puede retrasar el inicio del sueño.",
+              "terms": ["ritmo circadiano", "higiene del sueño"]
+            },
+            {
+              "type": "myth",
+              "id": "sueno_1_s3",
+              "statement": "El sueño profundo participa en consolidar lo que aprendiste.",
+              "is_myth": false,
+              "explanation": "El sueño [[NREM]] de ondas lentas ayuda a transferir y estabilizar aprendizajes. Dormir bien también es estudiar.",
+              "terms": ["NREM"]
+            }
+          ]
+        },
+        {
+          "id": "sueno_2",
+          "track_id": "sueno",
+          "level": 2,
+          "title": "Ritual o mito",
+          "subtitle": "Separa hábitos útiles de atajos que fallan.",
+          "minutes": 3,
+          "exp": 25,
+          "coins": 8,
+          "steps": [
+            {
+              "type": "classify",
+              "id": "sueno_2_s1",
+              "prompt": "Clasifica cada práctica.",
+              "buckets": [
+                { "id": "higiene", "label": "Higiene del sueño" },
+                { "id": "mito", "label": "Mito o atajo que falla" }
+              ],
+              "items": [
+                { "id": "s1", "text": "Mantener horarios parecidos todos los días.", "bucket": "higiene", "hint": "La regularidad entrena al reloj interno." },
+                { "id": "s2", "text": "Beber alcohol para dormirse más rápido.", "bucket": "mito", "hint": "Puede inducir sueño, pero fragmenta el descanso." },
+                { "id": "s3", "text": "Bajar las luces una hora antes de acostarse.", "bucket": "higiene", "hint": "Menos luz prepara la transición." },
+                { "id": "s4", "text": "Quedarse en la cama dando vueltas durante horas.", "bucket": "mito", "hint": "Si no llega el sueño, levantarse un rato suele ayudar más." }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sueno_3",
+          "track_id": "sueno",
+          "level": 3,
+          "title": "2 a.m. con el celular",
+          "subtitle": "Lee el relato y elige la explicación.",
+          "minutes": 4,
+          "exp": 30,
+          "coins": 10,
+          "steps": [
+            {
+              "type": "scenario",
+              "id": "sueno_3_s1",
+              "title": "2 a.m. con el celular",
+              "sentences": [
+                "Marta se acuesta a las 11 p.m. con la intención de dormir.",
+                "Abre el celular \"solo un momento\" y sigue desplazándose hasta las 2 a.m.",
+                "Al día siguiente siente que piensa más lento."
+              ],
+              "key_index": 1,
+              "question": "¿Qué mecanismo describe mejor la escena?",
+              "options": [
+                "Que el celular no influye en el sueño.",
+                "Que el desplazamiento sin pausa retrasa el inicio del sueño y reduce las horas disponibles.",
+                "Que Marta necesita menos horas de sueño."
+              ],
+              "answer": 1,
+              "explanation": "La combinación de luz, estímulo y pérdida de noción del tiempo retrasa el sueño. Un ritual de cierre con el teléfono fuera de la cama reduce esa fricción.",
+              "terms": ["higiene del sueño", "ritmo circadiano"]
+            }
+          ]
+        },
+        {
+          "id": "sueno_4",
+          "track_id": "sueno",
+          "level": 4,
+          "title": "Tu ritual de cierre",
+          "subtitle": "Diseña una transición amable.",
+          "minutes": 4,
+          "exp": 30,
+          "coins": 12,
+          "steps": [
+            {
+              "type": "reflect",
+              "id": "sueno_4_s1",
+              "prompt": "¿Qué pequeño ritual de cierre podrías probar esta semana para llegar al sueño con menos fricción?",
+              "placeholder": "Ej.: dejar el teléfono cargando fuera del cuarto y leer diez minutos en papel.",
+              "draw": true,
+              "draw_prompt": "Dibuja tu habitación ideal para descansar."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

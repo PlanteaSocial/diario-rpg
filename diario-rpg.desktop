@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=Diario RPG
+Comment=Diario personal y rutas de aprendizaje local-first
+Exec=/home/juan/Projects/Plantea/Herramientas/Diario_RPG/diario_inteligente/run.sh
+Path=/home/juan/Projects/Plantea/Herramientas/Diario_RPG/diario_inteligente
+Icon=/home/juan/Projects/Plantea/Herramientas/Diario_RPG/diario_inteligente/assets/diario-rpg.svg
+Terminal=false
+Categories=Office;
+Keywords=diario;journal;bienestar;aprender;
+StartupNotify=false

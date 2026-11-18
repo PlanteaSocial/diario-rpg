@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacidad y Seguridad Zero-Knowledge · Diario RPG</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ctext y='.9em' font-size='54'%3E%F0%9F%93%96%3C/text%3E%3C/svg%3E">
+  <script>
+    (function() {
+      var t = localStorage.getItem("diario_theme") || "light";
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .privacy-wrap {
+      max-width: 760px;
+      margin: 2rem auto 3.5rem;
+      padding: 0 1.25rem;
+    }
+    .privacy-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-card);
+      padding: 2rem 1.75rem;
+    }
+    .privacy-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .privacy-header h1 {
+      margin: 0;
+      font-size: 1.55rem;
+      color: var(--text-primary);
+    }
+    .privacy-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: var(--radius-sm);
+      background: var(--bg-card-subtle);
+      color: var(--text-primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border: 1px solid var(--border-subtle);
+    }
+    .privacy-back:hover {
+      background: var(--bg-hover);
+    }
+    .privacy-section {
+      margin-bottom: 1.5rem;
+    }
+    .privacy-section h2 {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      color: var(--accent-primary);
+      margin: 0 0 0.5rem;
+    }
+    .privacy-section p, .privacy-section li {
+      color: var(--text-secondary);
+      line-height: 1.65;
+      font-size: 0.96rem;
+    }
+    .privacy-section ul {
+      margin: 0.4rem 0 0 1.2rem;
+      padding: 0;
+    }
+    .privacy-badge {
+      display: inline-block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 999px;
+      background: var(--accent-primary-soft);
+      color: var(--accent-primary);
+      margin-bottom: 0.6rem;
+    }
+    .privacy-foot {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border-subtle);
+      font-size: 0.84rem;
+      color: var(--text-tertiary);
+    }
+  </style>
+</head>
+<body>
+  <main class="privacy-wrap">
+    <article class="privacy-card">
+      <div class="privacy-header">
+        <div>
+          <span class="privacy-badge">Arquitectura Zero-Knowledge</span>
+          <h1 class="serif-heading">Privacidad en Diario RPG</h1>
+        </div>
+        <a href="index.html" class="privacy-back">← Volver a Diario RPG</a>
+      </div>
+
+      <section class="privacy-section">
+        <h2>1. Cifrado de Extremo a Extremo (E2EE) en tu navegador</h2>
+        <p>
+          En Modo Nube, tus entradas del diario, notas rápidas, perfil, compañero y progreso se cifran
+          íntegramente en tu dispositivo antes de salir hacia la red:
+        </p>
+        <ul>
+          <li><strong>Cifrado autenticado AES-256-GCM:</strong> cada documento se cifra localmente con Web Crypto API y un vector de inicialización (IV) único por operación.</li>
+          <li><strong>Derivación PBKDF2-SHA256:</strong> tu frase secreta de bóveda nunca se envía al servidor; se utiliza exclusivamente en memoria del navegador para envolver y desbloquear tu llave de cifrado de datos (<strong>DEK</strong>).</li>
+          <li><strong>Llave de Recuperación (<code>DRPG1-...</code>):</strong> al crear tu bóveda recibes una llave única de respaldo. Es el único medio para recuperar acceso si olvidas tu frase secreta, porque ni los administradores ni el proveedor de nube pueden descifrar tu información.</li>
+        </ul>
+      </section>
+
+      <section class="privacy-section">
+        <h2>2. Uso mínimo de Firebase y Google Auth</h2>
+        <p>
+          Firebase se utiliza únicamente como infraestructura de autenticación y almacenamiento cifrado:
+        </p>
+        <ul>
+          <li><strong>Firebase Authentication / Google Sign-In:</strong> valida tu identidad (UID, correo y nombre visible de cuenta) para aislar tu bóveda bajo reglas de seguridad por usuario.</li>
+          <li><strong>Cloud Firestore:</strong> almacena exclusivamente cargas útiles cifradas (<em>ciphertext</em>) y metadatos técnicos de envoltura de llave (sal y DEK envuelta). No almacenamos ni leemos texto plano de tus escritos.</li>
+          <li><strong>Sin analítica de terceros ni venta de datos:</strong> no utilizamos rastreadores publicitarios ni vendemos información personal.</li>
+        </ul>
+      </section>
+
+      <section class="privacy-section">
+        <h2>3. Inferencia de IA 100% local en el navegador</h2>
+        <p>
+          El análisis de bienestar emocional, señales sintácticas y crónicas reflexivas se ejecuta
+          íntegramente en tu dispositivo:
+        </p>
+        <ul>
+          <li><strong>Procesamiento local:</strong> el motor sintáctico y el modelo neuronal cuantizado (ONNX Runtime WebAssembly INT8 en Web Worker) corren dentro de tu navegador.</li>
+          <li><strong>Cero envío de entradas a APIs de IA externas:</strong> el texto de tu diario nunca se transmite a modelos en la nube para inferencia.</li>
+          <li><strong>Verificación de integridad SHA-256:</strong> los artefactos del modelo local se verifican criptográficamente mediante <code>crypto.subtle.digest('SHA-256')</code> antes de ejecutarse o guardarse en caché local del navegador (IndexedDB).</li>
+        </ul>
+      </section>
+
+      <section class="privacy-section">
+        <h2>4. Control total de tus datos</h2>
+        <p>
+          Puedes usar Diario RPG en modo 100% local sin conexión a la nube, exportar tu información
+          o eliminar tu cuenta y documentos en cualquier momento.
+        </p>
+      </section>
+
+      <p class="privacy-foot">
+        Diario RPG · Proyecto de bienestar local-first y Zero-Knowledge E2EE.
+      </p>
+    </article>
+  </main>
+</body>
+</html>

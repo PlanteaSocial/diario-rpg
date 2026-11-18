@@ -12,7 +12,18 @@ import unittest
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-PW_CLI_DIR = Path("/home/juan/.local/share/mise/installs/playwright/latest/node_modules/playwright")
+
+
+def _resolve_playwright_dir() -> Path | None:
+    candidates = []
+    if os.environ.get("PLAYWRIGHT_NODE_PATH"):
+        candidates.append(Path(os.environ["PLAYWRIGHT_NODE_PATH"]))
+    candidates.append(PROJECT_ROOT / "node_modules" / "playwright")
+    candidates.append(Path.home() / ".local" / "share" / "mise" / "installs" / "playwright" / "latest" / "node_modules" / "playwright")
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
 
 
 class TestMlPhaseBC(unittest.TestCase):
@@ -41,8 +52,9 @@ class TestMlPhaseBC(unittest.TestCase):
 
     def test_browser_e2e_worker_wasm_offline_and_aprender(self):
         node_bin = shutil.which("node")
-        chromium_bin = Path("/usr/bin/chromium")
-        if not node_bin or not PW_CLI_DIR.exists() or not chromium_bin.exists():
+        pw_dir = _resolve_playwright_dir()
+        chromium_bin = Path(os.environ.get("CHROMIUM_BIN", "/usr/bin/chromium"))
+        if not node_bin or not pw_dir or not chromium_bin.exists():
             self.skipTest("Playwright/Chromium no disponible en este entorno")
         if os.environ.get("DIARIO_SKIP_BROWSER_E2E") == "1":
             self.skipTest("Omitido por DIARIO_SKIP_BROWSER_E2E=1")

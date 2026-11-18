@@ -638,7 +638,7 @@ const FirebaseBackend = {
   },
 
   async applyTier1Upgrade(entryId, revision, tier1Trace, priorDesgasteSeries = []) {
-    if (!this.vaultKey || !this.user || !tier1Trace) return null;
+    if (!this.dekKey || !this.user || !tier1Trace) return null;
     const bundle = await this._readDayBundle(entryId);
     if (!bundle || !bundle.entry || bundle.entry.updated_at !== revision) {
       return null;

@@ -1,6 +1,6 @@
 {
   "status": "retrained_and_calibrated",
-  "checkpoint_used": "C:\\Users\\juana\\.gemini\\antigravity\\scratch\\diario_inteligente\\data\\checkpoints\\laya_finetuned",
+  "checkpoint_used": "data/checkpoints/laya_finetuned",
   "before": {
     "accuracy_valencia": 0.6,
     "accuracy_energia": 0.52,

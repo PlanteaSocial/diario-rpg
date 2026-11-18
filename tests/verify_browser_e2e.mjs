@@ -13,6 +13,7 @@
  */
 import http from "node:http";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
@@ -22,8 +23,23 @@ const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
 
-const PW_PATH = "/home/juan/.local/share/mise/installs/playwright/latest/node_modules/playwright";
-const { chromium } = require(PW_PATH);
+function resolvePlaywright() {
+  const candidates = [
+    process.env.PLAYWRIGHT_NODE_PATH,
+    "playwright",
+    path.join(os.homedir(), ".local/share/mise/installs/playwright/latest/node_modules/playwright")
+  ].filter(Boolean);
+  for (const candidate of candidates) {
+    try {
+      return require(candidate);
+    } catch {
+      // probar siguiente candidato
+    }
+  }
+  throw new Error("No se encontró el módulo 'playwright'. Define PLAYWRIGHT_NODE_PATH.");
+}
+
+const { chromium } = resolvePlaywright();
 const CHROMIUM_BIN = fs.existsSync("/usr/bin/chromium") ? "/usr/bin/chromium" : undefined;
 
 const MIME_MAP = {

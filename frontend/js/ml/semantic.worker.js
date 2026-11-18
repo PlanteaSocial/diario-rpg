@@ -10,13 +10,14 @@
 importScripts("./bpe_tokenizer.js", "./syntax_features.js", "./calibration_math.js");
 
 const ARTIFACT_VERSION = "v1.0.0-mmbert2-q8";
+const PINNED_REPO_REF = "719d874934ac954a85f5b9000331918ffe5b7da7";
 const IDB_NAME = "diario_rpg_ml_cache_v1";
 const IDB_STORE = "artifacts";
-const CACHE_API_NAME = "diario-rpg-ml-v1";
 
 const DEFAULT_SOURCES = {
   ort_wasm_js: {
     mime: "text/javascript",
+    sha256: "e66568724f8848e57cc2a56e4bea3a5b86ce3ff81b2da11eac8ed7ab02b27bd4",
     urls: [
       "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.wasm.min.js",
       "https://unpkg.com/onnxruntime-web@1.20.1/dist/ort.wasm.min.js"
@@ -24,6 +25,7 @@ const DEFAULT_SOURCES = {
   },
   ort_wasm_mjs: {
     mime: "text/javascript",
+    sha256: "745eb7c0ce6f18a6aa521971b2877babc7ffb27eecb58ab3bc6e5ef4692672e8",
     urls: [
       "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.mjs",
       "https://unpkg.com/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.mjs"
@@ -31,6 +33,7 @@ const DEFAULT_SOURCES = {
   },
   ort_wasm_bin: {
     mime: "application/wasm",
+    sha256: "207d02be4591c156b0a98f024f3d58005b5b04c92274d759fb390338c63559ea",
     urls: [
       "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.wasm",
       "https://unpkg.com/onnxruntime-web@1.20.1/dist/ort-wasm-simd-threaded.wasm"
@@ -38,30 +41,34 @@ const DEFAULT_SOURCES = {
   },
   tokenizer_json: {
     mime: "application/json",
+    sha256: "4eca20f6ef6b4533f2031adee692c2602b1b6ccb974f112e9fc127fcc19e6c0a",
     urls: [
-      "https://cdn.jsdelivr.net/gh/PlanteaSocial/diario-rpg@main/models/tokenizer_es.json",
-      "https://raw.githubusercontent.com/PlanteaSocial/diario-rpg/main/models/tokenizer_es.json"
+      `https://cdn.jsdelivr.net/gh/PlanteaSocial/diario-rpg@${PINNED_REPO_REF}/models/tokenizer_es.json`,
+      `https://raw.githubusercontent.com/PlanteaSocial/diario-rpg/${PINNED_REPO_REF}/models/tokenizer_es.json`
     ]
   },
   prototypes_json: {
     mime: "application/json",
+    sha256: "4122ebe7d877939ae40779d8ce750eddf0ba890a7b662e4df2ed3568457b1b52",
     urls: [
-      "https://cdn.jsdelivr.net/gh/PlanteaSocial/diario-rpg@main/models/prototypes_neg_v1.json",
-      "https://raw.githubusercontent.com/PlanteaSocial/diario-rpg/main/models/prototypes_neg_v1.json"
+      `https://cdn.jsdelivr.net/gh/PlanteaSocial/diario-rpg@${PINNED_REPO_REF}/models/prototypes_neg_v1.json`,
+      `https://raw.githubusercontent.com/PlanteaSocial/diario-rpg/${PINNED_REPO_REF}/models/prototypes_neg_v1.json`
     ]
   },
   heads_json: {
     mime: "application/json",
+    sha256: "baad064da19bdd631dd5741a9e74d29c1a244d151a160011490fedfeee3b8150",
     urls: [
-      "https://cdn.jsdelivr.net/gh/PlanteaSocial/diario-rpg@main/models/diario_heads_v1.json",
-      "https://raw.githubusercontent.com/PlanteaSocial/diario-rpg/main/models/diario_heads_v1.json"
+      `https://cdn.jsdelivr.net/gh/PlanteaSocial/diario-rpg@${PINNED_REPO_REF}/models/diario_heads_v1.json`,
+      `https://raw.githubusercontent.com/PlanteaSocial/diario-rpg/${PINNED_REPO_REF}/models/diario_heads_v1.json`
     ]
   },
   model_onnx: {
     mime: "application/octet-stream",
+    sha256: "c784b0f1e8c8a6cede0038293bbb60667b3314da2b6fe19a57c8e78480236a2a",
     urls: [
-      "https://cdn.jsdelivr.net/gh/PlanteaSocial/diario-rpg@main/models/model_es_q8.onnx",
-      "https://raw.githubusercontent.com/PlanteaSocial/diario-rpg/main/models/model_es_q8.onnx"
+      `https://cdn.jsdelivr.net/gh/PlanteaSocial/diario-rpg@${PINNED_REPO_REF}/models/model_es_q8.onnx`,
+      `https://raw.githubusercontent.com/PlanteaSocial/diario-rpg/${PINNED_REPO_REF}/models/model_es_q8.onnx`
     ]
   }
 };
@@ -164,37 +171,43 @@ async function fetchFromMirrors(urls) {
   throw lastErr || new Error("No fue posible descargar el artefacto ML.");
 }
 
-async function loadArtifactBuffer(db, cacheApi, key, spec, progressIdx, totalArtifacts) {
-  const idbRec = await idbGet(db, key);
+async function sha256Hex(buffer) {
+  if (!self.crypto || !self.crypto.subtle) {
+    throw new Error("Web Crypto API (crypto.subtle) no disponible para verificar integridad SHA-256.");
+  }
+  const digest = await self.crypto.subtle.digest("SHA-256", buffer);
+  const bytes = new Uint8Array(digest);
+  let hex = "";
+  for (let i = 0; i < bytes.length; i++) {
+    hex += bytes[i].toString(16).padStart(2, "0");
+  }
+  return hex;
+}
+
+async function verifyArtifactIntegrity(key, buffer, expectedSha256) {
+  if (!expectedSha256) {
+    throw new Error(`Falta hash SHA-256 esperado para ${key}.`);
+  }
+  const actual = await sha256Hex(buffer);
+  if (actual !== String(expectedSha256).toLowerCase()) {
+    throw new Error(`Integridad SHA-256 inválida para ${key}: esperado ${expectedSha256}, obtenido ${actual}`);
+  }
+}
+
+async function loadArtifactBuffer(db, key, spec, progressIdx, totalArtifacts) {
+  const versionedKey = `${ARTIFACT_VERSION}:${key}`;
+  const idbRec = await idbGet(db, versionedKey);
   if (
     idbRec
     && idbRec.version === ARTIFACT_VERSION
     && idbRec.buffer instanceof ArrayBuffer
     && idbRec.buffer.byteLength > 0
   ) {
-    return { buffer: idbRec.buffer, fromCache: true };
-  }
-
-  if (cacheApi) {
-    for (const url of spec.urls) {
-      try {
-        const hit = await cacheApi.match(url);
-        if (hit && hit.ok) {
-          const buf = await hit.arrayBuffer();
-          if (buf && buf.byteLength > 0) {
-            await idbPut(db, {
-              key,
-              version: ARTIFACT_VERSION,
-              mime: spec.mime,
-              buffer: buf,
-              cachedAt: Date.now()
-            });
-            return { buffer: buf, fromCache: true };
-          }
-        }
-      } catch {
-        // Ignorar fallo puntual en Cache API y seguir al espejo de red
-      }
+    try {
+      await verifyArtifactIntegrity(key, idbRec.buffer, spec.sha256);
+      return { buffer: idbRec.buffer, fromCache: true };
+    } catch {
+      // Caché corrupta o manipulada: ignorar y re-descargar desde espejo verificado
     }
   }
 
@@ -206,27 +219,17 @@ async function loadArtifactBuffer(db, cacheApi, key, spec, progressIdx, totalArt
     total: totalArtifacts
   });
 
-  const { buffer, url } = await fetchFromMirrors(spec.urls);
+  const { buffer } = await fetchFromMirrors(spec.urls);
+  await verifyArtifactIntegrity(key, buffer, spec.sha256);
   await idbPut(db, {
-    key,
+    key: versionedKey,
+    artifact: key,
     version: ARTIFACT_VERSION,
+    sha256: spec.sha256,
     mime: spec.mime,
     buffer,
     cachedAt: Date.now()
   });
-  if (cacheApi && url) {
-    try {
-      await cacheApi.put(
-        url,
-        new Response(buffer.slice(0), {
-          status: 200,
-          headers: { "Content-Type": spec.mime }
-        })
-      );
-    } catch {
-      // Cache API es redundancia opcional junto a IndexedDB
-    }
-  }
   return { buffer, fromCache: false };
 }
 
@@ -236,7 +239,7 @@ function mergeSources(config = {}) {
   for (const [k, def] of Object.entries(DEFAULT_SOURCES)) {
     const ov = overrides[k];
     merged[k] = ov && Array.isArray(ov.urls) && ov.urls.length
-      ? { mime: ov.mime || def.mime, urls: ov.urls }
+      ? { mime: ov.mime || def.mime, sha256: ov.sha256 || def.sha256, urls: ov.urls }
       : def;
   }
   return merged;
@@ -252,19 +255,11 @@ async function ensureInitialized(config = {}) {
     const keys = Object.keys(sources);
 
     const db = await openCacheDb();
-    let cacheApi = null;
-    if (typeof caches !== "undefined") {
-      try {
-        cacheApi = await caches.open(CACHE_API_NAME);
-      } catch {
-        cacheApi = null;
-      }
-    }
 
     const buffers = {};
     let allFromCache = true;
     const loadedItems = await Promise.all(
-      keys.map((k, i) => loadArtifactBuffer(db, cacheApi, k, sources[k], i, keys.length))
+      keys.map((k, i) => loadArtifactBuffer(db, k, sources[k], i, keys.length))
     );
     for (let i = 0; i < keys.length; i++) {
       buffers[keys[i]] = loadedItems[i].buffer;

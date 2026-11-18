@@ -38,7 +38,7 @@
 Requisitos: Python 3.11+ y, opcionalmente, [`uv`](https://docs.astral.sh/uv/) para crear el entorno más rápido.
 
 ```bash
-cd /home/juan/Projects/Plantea/Herramientas/Diario_RPG/diario_inteligente
+cd diario_inteligente
 ./run.sh
 ```
 
@@ -203,7 +203,7 @@ diario_inteligente/
 Abre una consola de PowerShell en la carpeta del proyecto y ejecuta:
 
 ```powershell
-cd C:\Users\juana\.gemini\antigravity\scratch\diario_inteligente
+cd C:\ruta\a\diario_inteligente
 .\start_app.ps1
 ```
 

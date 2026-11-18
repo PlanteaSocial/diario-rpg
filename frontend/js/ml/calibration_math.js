@@ -83,26 +83,28 @@
   }
 
   /**
-   * Temperature Scaling: softmax( (prior_k + compressed(raw_k)) / T )
+   * Softmax con escalado de temperatura sobre logits ya calculados, garantizando suma exacta = 1.0
+   * y cálculo de confianza calibrada por margen top1-top2 + entropía normalizada.
    */
-  function temperatureSoftmaxBlock(rawScores, blockKey) {
-    const priors = PRIORS[blockKey] || {};
-    const T = Math.max(0.2, TEMPERATURES[blockKey] || 1.25);
-    const keys = Object.keys(priors);
+  function softmaxFromLogits(rawLogitsByKey, temperature = 1.0) {
+    const keys = Object.keys(rawLogitsByKey || {});
+    if (!keys.length) {
+      return { choice: "", probabilities: {}, answer_confidence: 0.3 };
+    }
+    const T = Math.max(0.2, Number(temperature) || 1.0);
 
-    const logits = {};
+    const scaledLogits = {};
     let maxScaled = -Infinity;
     for (const k of keys) {
-      const z = (priors[k] || 0) + compressRawScore(rawScores[k] || 0);
-      const scaled = z / T;
-      logits[k] = scaled;
+      const scaled = Number(rawLogitsByKey[k] || 0) / T;
+      scaledLogits[k] = scaled;
       if (scaled > maxScaled) maxScaled = scaled;
     }
 
     const exps = {};
     let sumExp = 0;
     for (const k of keys) {
-      const e = Math.exp(logits[k] - maxScaled);
+      const e = Math.exp(scaledLogits[k] - maxScaled);
       exps[k] = e;
       sumExp += e;
     }
@@ -145,6 +147,38 @@
       probabilities,
       answer_confidence
     };
+  }
+
+  /**
+   * Temperature Scaling: softmax( (prior_k + compressed(raw_k)) / T )
+   */
+  function temperatureSoftmaxBlock(rawScores, blockKey) {
+    const priors = PRIORS[blockKey] || {};
+    const T = Math.max(0.2, TEMPERATURES[blockKey] || 1.25);
+    const keys = Object.keys(priors);
+
+    // Suprimir levemente el prior positivo cuando hay clara señal negativa sin contraparte positiva.
+    const effectivePriors = { ...priors };
+    if (blockKey === "valencia_emocional") {
+      const negSum = Number(rawScores.negativo || 0) + Number(rawScores.muy_negativo || 0);
+      const posSum = Number(rawScores.positivo || 0) + Number(rawScores.muy_positivo || 0);
+      if (negSum >= 2.2 && posSum === 0) {
+        effectivePriors.positivo -= 0.75;
+        effectivePriors.muy_positivo -= 0.6;
+      } else if (posSum >= 2.2 && negSum === 0) {
+        effectivePriors.negativo -= 0.75;
+        effectivePriors.muy_negativo -= 0.6;
+      } else if (posSum >= 0.5 && negSum === 0) {
+        effectivePriors.negativo -= 0.6;
+        effectivePriors.muy_negativo -= 0.6;
+      }
+    }
+
+    const combinedLogits = {};
+    for (const k of keys) {
+      combinedLogits[k] = (effectivePriors[k] || 0) + compressRawScore(rawScores[k] || 0);
+    }
+    return softmaxFromLogits(combinedLogits, T);
   }
 
   /**
@@ -249,17 +283,151 @@
     };
   }
 
+  const SYNTAX_SIGNAL16_KEYS = [
+    "sig_adversative_ratio",
+    "sig_negated_positive",
+    "sig_negated_sleep_energy",
+    "sig_double_negation",
+    "sig_exhaustion_limit",
+    "sig_intensifiers",
+    "sig_ironic_quotes",
+    "sig_ironic_exclamation",
+    "sig_idiom_mental_load",
+    "sig_idiom_burnout",
+    "sig_sleep_deficit_phrases",
+    "sig_somatic_strain",
+    "sig_social_support_positive",
+    "sig_agency_progress",
+    "sig_intra_note_contradiction",
+    "sig_self_report_gap"
+  ];
+
+  function dotProduct(a, b, offsetA = 0, len = b.length) {
+    let acc = 0;
+    for (let i = 0; i < len; i++) {
+      acc += Number(a[offsetA + i] || 0) * Number(b[i] || 0);
+    }
+    return acc;
+  }
+
+  /**
+   * Evalúa los cabezales híbridos Tier 1 ([embedding ONNX 768 + señales16 + prototipos/subespacio])
+   * con Temperature Scaling y Platt Scaling idénticos al entrenamiento Teacher-Student.
+   */
+  function scoreTier1Hybrid(embeddingVec, synSignals16, {
+    prototypes,
+    heads,
+    priorDesgasteSeries = [],
+    explicitRegexRisk = false
+  } = {}) {
+    if (!embeddingVec || !prototypes || !heads) {
+      throw new Error("scoreTier1Hybrid requiere embedding, prototypes y heads.");
+    }
+
+    const layout = heads.feature_layout || {};
+    const embDim = Number(layout.emb_dim || embeddingVec.length || 768);
+    const synDim = Number(layout.syntax_dim || 16);
+    const anchorNames = prototypes.anchor_names || [];
+    const negSubspace = prototypes.neg_subspace || [];
+    const totalDim = Number(layout.total_dim || (embDim + synDim + anchorNames.length + negSubspace.length));
+
+    const feat = new Float32Array(totalDim);
+    for (let i = 0; i < embDim; i++) {
+      feat[i] = Number(embeddingVec[i] || 0);
+    }
+
+    if (Array.isArray(synSignals16) || ArrayBuffer.isView(synSignals16)) {
+      for (let i = 0; i < synDim; i++) {
+        feat[embDim + i] = Number(synSignals16[i] || 0);
+      }
+    } else {
+      const sObj = synSignals16 || {};
+      for (let i = 0; i < synDim; i++) {
+        feat[embDim + i] = Number(sObj[SYNTAX_SIGNAL16_KEYS[i]] || 0);
+      }
+    }
+
+    let cursor = embDim + synDim;
+    for (let i = 0; i < anchorNames.length; i++) {
+      const anchorVec = (prototypes.anchors || {})[anchorNames[i]] || [];
+      feat[cursor++] = dotProduct(embeddingVec, anchorVec, 0, embDim);
+    }
+    for (let i = 0; i < negSubspace.length; i++) {
+      feat[cursor++] = dotProduct(embeddingVec, negSubspace[i], 0, embDim);
+    }
+
+    const evalMulticlassHead = (blockHead) => {
+      const classes = blockHead.classes || [];
+      const rawLogits = {};
+      for (let c = 0; c < classes.length; c++) {
+        rawLogits[classes[c]] = dotProduct(feat, blockHead.weights[c], 0, totalDim) + Number(blockHead.biases[c] || 0);
+      }
+      return softmaxFromLogits(rawLogits, blockHead.temperature || 1.0);
+    };
+
+    const evalBinaryHead = (binHead) => {
+      const rawZ = dotProduct(feat, binHead.weights, 0, totalDim) + Number(binHead.bias || 0);
+      return plattSigmoid(rawZ, binHead.platt_a || 1.0, binHead.platt_b || 0.0);
+    };
+
+    const blocks = heads.blocks || {};
+    const valRes = evalMulticlassHead(blocks.valencia_emocional);
+    const actRes = evalMulticlassHead(blocks.activacion_energia);
+    const emoRes = evalMulticlassHead(blocks.emocion_primaria);
+
+    const ejes = {};
+    for (const ejeKey of ["trabajo_estudio", "descanso_sueno", "relaciones_familia", "salud_cuerpo", "carga_mental"]) {
+      const head = (heads.ejes || {})[ejeKey];
+      ejes[ejeKey] = head ? evalBinaryHead(head) : 0.05;
+    }
+
+    const senHeads = heads.senales || {};
+    const pDesgasteHoy = senHeads.desgaste_sostenido ? evalBinaryHead(senHeads.desgaste_sostenido) : 0.05;
+    const desgasteBlend = blendDesgasteEma3d(pDesgasteHoy, priorDesgasteSeries);
+    const pContradiccion = senHeads.contradiccion_emocional ? evalBinaryHead(senHeads.contradiccion_emocional) : 0.05;
+    const pRiesgoSemantico = senHeads.riesgo_autolesion_purga ? evalBinaryHead(senHeads.riesgo_autolesion_purga) : 0.02;
+    const pRiesgoFinal = explicitRegexRisk ? 1.0 : pRiesgoSemantico;
+
+    const temperatures = {
+      valencia_emocional: Number((blocks.valencia_emocional || {}).temperature || 1.0),
+      activacion_energia: Number((blocks.activacion_energia || {}).temperature || 1.0),
+      emocion_primaria: Number((blocks.emocion_primaria || {}).temperature || 1.0)
+    };
+
+    return {
+      valencia_emocional: valRes,
+      activacion_energia: actRes,
+      emocion_primaria: emoRes,
+      ejes_tematicos: ejes,
+      senales_alerta: {
+        desgaste_sostenido: desgasteBlend.effective,
+        contradiccion_emocional: pContradiccion,
+        riesgo_autolesion_purga: pRiesgoFinal
+      },
+      calibration_meta: {
+        method: "onnx_q8_hybrid_v1",
+        temperatures,
+        desgaste_blend: desgasteBlend,
+        riesgo_semantic_prob: pRiesgoSemantico,
+        riesgo_regex_override: Boolean(explicitRegexRisk)
+      }
+    };
+  }
+
   return {
     TEMPERATURES,
     PRIORS,
     PLATT_AXES,
     PLATT_SIGNALS,
+    SYNTAX_SIGNAL16_KEYS,
     round,
     clamp01,
     compressRawScore,
+    softmaxFromLogits,
     temperatureSoftmaxBlock,
     plattSigmoid,
     blendDesgasteEma3d,
-    calibrateProfile
+    calibrateProfile,
+    scoreTier1Hybrid
   };
 });

@@ -321,6 +321,11 @@ const DayEditorComponent = {
       ? `<span class="badge-pill" style="color: var(--accent-indigo); text-transform: capitalize;">✦ ${this.escapeHtml(e.laya_profile.emocion_primaria.choice)}</span>`
       : "";
 
+    const backendUsed = e.laya_profile && e.laya_profile.raw_usage ? e.laya_profile.raw_usage.backend : "";
+    const tierBadge = backendUsed === "laya-onnx-q8-worker"
+      ? `<span class="badge-pill" data-ml-tier="tier_1" title="Inferencia neuronal local en Web Worker ONNX">🧠 Laya ONNX Tier 1</span>`
+      : (backendUsed ? `<span class="badge-pill" data-ml-tier="tier_0" title="Análisis sintáctico inmediato mientras prepara Tier 1">⚡ Sintaxis Tier 0</span>` : "");
+
     const refl = e.daily_reflection;
     const reflectionHtml = refl
       ? `
@@ -342,11 +347,28 @@ const DayEditorComponent = {
           <span class="badge-pill">💬 ${this.escapeHtml(q.self_report_word)}</span>
           <span class="badge-pill">🌤️ Ánimo ${this.escapeHtml(q.valence_rating)}/5</span>
           ${emoBadge}
+          ${tierBadge}
         </div>
       </div>
       ${textPreview}
       ${reflectionHtml}
     `;
+  },
+
+  onTier1Reconciled(updatedEntry) {
+    if (!updatedEntry || updatedEntry.date !== this.currentDate) return;
+    this.currentEntry = updatedEntry;
+    this.renderSavedSummaryCard();
+    if (updatedEntry.laya_profile) {
+      this.renderLayaProfile(updatedEntry.laya_profile, updatedEntry.user_corrections, updatedEntry.goal_alignment);
+    }
+    this.renderAlerts(updatedEntry.discrepancy, updatedEntry.safety);
+    if (typeof App !== "undefined" && App.renderTodayRail) {
+      App.renderTodayRail(updatedEntry);
+    }
+    if (typeof App !== "undefined" && App.showToast) {
+      App.showToast("Análisis semántico refinado en segundo plano (Tier 1 ONNX)");
+    }
   },
 
   setActivePill(groupId, value) {

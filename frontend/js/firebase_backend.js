@@ -516,13 +516,17 @@ const FirebaseBackend = {
    * ============================================================================ */
 
   async getStatus() {
+    const mlStatus = typeof SemanticClient !== "undefined" ? SemanticClient.getStatus() : { ready: false, state: "unsupported" };
     return {
       status: "online",
       timestamp: new Date().toISOString(),
       database: "Cloud Firestore (E2EE AES-256-GCM)",
-      laya_model: "Motor Sintáctico 16 Señales + Calibración Local (Navegador)",
+      laya_model: mlStatus.ready
+        ? `Motor Semántico ONNX INT8 + Sintaxis (Worker${mlStatus.cacheHit ? " · caché offline" : ""})`
+        : "Motor Sintáctico 16 Señales + Calibración Local (Tier 0)",
       ollama_qwen: "Motor Vectorial de Crónicas MMR+HLR (Zero-Knowledge)",
-      classifier: "laya-syntax-calibrada-js (100% cliente)",
+      classifier: mlStatus.ready ? "laya-onnx-q8-worker (100% cliente)" : "laya-syntax-calibrada-js (100% cliente)",
+      ml_worker: mlStatus,
       platform: "Firebase Hosting · Plan Spark"
     };
   },
@@ -578,6 +582,109 @@ const FirebaseBackend = {
     return { ...bundle.entry, quick_notes: bundle.quick_notes || [] };
   },
 
+  _buildDayFullText(dayText, quickNotes = []) {
+    const quickTexts = (quickNotes || []).map((qn) => `[${qn.time}] ${qn.text}`);
+    const parts = [];
+    if ((dayText || "").trim()) parts.push(dayText.trim());
+    if (quickTexts.length) parts.push("Notas rápidas del día:\n" + quickTexts.join("\n"));
+    return parts.join("\n\n");
+  },
+
+  _finalizeTraceProfile({ date, fullText, questionnaire, detailedTrace, priorDesgasteSeries, userProfile }) {
+    const layaProfile = detailedTrace ? detailedTrace.profile : null;
+    if (layaProfile && detailedTrace.calibration_meta && detailedTrace.calibration_meta.desgaste_blend) {
+      layaProfile.raw_usage = {
+        ...(layaProfile.raw_usage || {}),
+        p_desgaste_hoy: detailedTrace.calibration_meta.desgaste_blend.p_today
+      };
+    }
+
+    const safety = ClientEngine.evaluateSafety(fullText, layaProfile ? layaProfile.senales_alerta : null, {
+      questionnaire,
+      priorDesgasteSeries
+    });
+    const discrepancy = ClientEngine.detectDiscrepancy(questionnaire, layaProfile);
+    const goalAlignment = ClientEngine.evaluateDailyGoalAlignment(questionnaire, layaProfile, userProfile);
+    const dailyReflection = ClientEngine.selectDailyReflection({
+      date,
+      layaProfile,
+      questionnaire,
+      safety,
+      discrepancy,
+      goalAlignment,
+      history: userProfile.suggestion_history || []
+    });
+
+    return { layaProfile, safety, discrepancy, goalAlignment, dailyReflection };
+  },
+
+  _recordDevTrace(timestamp, date, fullText, detailedTrace, dailyReflection, type = "day_entry_inference") {
+    this._lastDevTrace = {
+      timestamp,
+      type,
+      date,
+      input_text: fullText,
+      latency_ms: detailedTrace ? detailedTrace.latency_ms : 0.0,
+      input_tokens: detailedTrace ? detailedTrace.input_tokens : 0,
+      profile: detailedTrace ? detailedTrace.profile : null,
+      raw_answers: detailedTrace ? detailedTrace.raw_answers : {},
+      raw_usage: detailedTrace ? detailedTrace.raw_usage : {},
+      valence_calculation: detailedTrace ? detailedTrace.valence_calculation : {},
+      syntax_analysis: detailedTrace ? detailedTrace.syntax_analysis : null,
+      calibration_meta: detailedTrace ? detailedTrace.calibration_meta : null,
+      daily_reflection: dailyReflection,
+      questions_schema: ClientEngine.LAYA_QUESTIONS
+    };
+  },
+
+  async applyTier1Upgrade(entryId, revision, tier1Trace, priorDesgasteSeries = []) {
+    if (!this.vaultKey || !this.user || !tier1Trace) return null;
+    const bundle = await this._readDayBundle(entryId);
+    if (!bundle || !bundle.entry || bundle.entry.updated_at !== revision) {
+      return null;
+    }
+
+    const existing = bundle.entry;
+    const fullText = this._buildDayFullText(existing.day_text, bundle.quick_notes || existing.quick_notes || []);
+    const userProfile = await this._getOrInitProfile();
+    const { layaProfile, safety, discrepancy, goalAlignment, dailyReflection } = this._finalizeTraceProfile({
+      date: entryId,
+      fullText,
+      questionnaire: existing.questionnaire,
+      detailedTrace: tier1Trace,
+      priorDesgasteSeries,
+      userProfile
+    });
+
+    const reconciledAt = new Date().toISOString();
+    const upgradedEntry = {
+      ...existing,
+      laya_profile: layaProfile,
+      discrepancy,
+      safety,
+      goal_alignment: goalAlignment,
+      daily_reflection: dailyReflection ? {
+        card_id: dailyReflection.card_id,
+        theme: dailyReflection.theme,
+        title: dailyReflection.title,
+        chronicle: dailyReflection.chronicle,
+        suggestion: dailyReflection.suggestion,
+        safety_locked: dailyReflection.safety_locked
+      } : existing.daily_reflection,
+      ml_tier: "tier_1_onnx_q8",
+      tier1_reconciled_at: reconciledAt
+    };
+
+    bundle.entry = upgradedEntry;
+    await this._writeDayBundle(entryId, bundle);
+    this._recordDevTrace(reconciledAt, entryId, fullText, tier1Trace, dailyReflection, "day_entry_tier1_reconciled");
+
+    if (typeof DayEditorComponent !== "undefined" && typeof DayEditorComponent.onTier1Reconciled === "function") {
+      DayEditorComponent.onTier1Reconciled(upgradedEntry);
+    }
+    return upgradedEntry;
+  },
+
   async saveDayEntry(payload) {
     const bundle = await this._readDayBundle(payload.date);
     const q = { ...(payload.questionnaire || {}) };
@@ -588,11 +695,7 @@ const FirebaseBackend = {
     q.energy_rating = Number(q.energy_rating || 3);
     q.workload_rating = Number(q.workload_rating || 3);
 
-    const quickTexts = (bundle.quick_notes || []).map((qn) => `[${qn.time}] ${qn.text}`);
-    const parts = [];
-    if ((payload.day_text || "").trim()) parts.push(payload.day_text.trim());
-    if (quickTexts.length) parts.push("Notas rápidas del día:\n" + quickTexts.join("\n"));
-    const fullText = parts.join("\n\n");
+    const fullText = this._buildDayFullText(payload.day_text, bundle.quick_notes || []);
 
     const recentEntries = await this._loadAllDays(14);
     const priorDesgasteSeries = recentEntries
@@ -605,36 +708,39 @@ const FirebaseBackend = {
           : (e.laya_profile.senales_alerta.desgaste_sostenido || 0)
       ));
 
-    const detailedTrace = fullText
-      ? ClientEngine.classifyTextDetailed(fullText, { questionnaire: q, priorDesgasteSeries })
-      : null;
-    const layaProfile = detailedTrace ? detailedTrace.profile : null;
-    if (layaProfile && detailedTrace.calibration_meta && detailedTrace.calibration_meta.desgaste_blend) {
-      layaProfile.raw_usage = {
-        ...(layaProfile.raw_usage || {}),
-        p_desgaste_hoy: detailedTrace.calibration_meta.desgaste_blend.p_today
-      };
+    const now = new Date().toISOString();
+    const canUseTier1Now = Boolean(typeof SemanticClient !== "undefined" && SemanticClient.isReady());
+    let detailedTrace = null;
+    if (fullText) {
+      if (canUseTier1Now) {
+        try {
+          detailedTrace = await SemanticClient.classify(fullText, {
+            entryId: payload.date,
+            revision: now,
+            questionnaire: q,
+            priorDesgasteSeries
+          });
+        } catch {
+          detailedTrace = ClientEngine.classifyTextDetailed(fullText, { questionnaire: q, priorDesgasteSeries });
+        }
+      } else {
+        detailedTrace = ClientEngine.classifyTextDetailed(fullText, { questionnaire: q, priorDesgasteSeries });
+      }
     }
 
-    const safety = ClientEngine.evaluateSafety(fullText, layaProfile ? layaProfile.senales_alerta : null, {
-      questionnaire: q,
-      priorDesgasteSeries
-    });
-    const discrepancy = ClientEngine.detectDiscrepancy(q, layaProfile);
+    const usedTier1 = Boolean(
+      detailedTrace && detailedTrace.raw_usage && detailedTrace.raw_usage.backend === "laya-onnx-q8-worker"
+    );
     const userProfile = await this._getOrInitProfile();
-    const goalAlignment = ClientEngine.evaluateDailyGoalAlignment(q, layaProfile, userProfile);
-
-    const dailyReflection = ClientEngine.selectDailyReflection({
+    const { layaProfile, safety, discrepancy, goalAlignment, dailyReflection } = this._finalizeTraceProfile({
       date: payload.date,
-      layaProfile,
+      fullText,
       questionnaire: q,
-      safety,
-      discrepancy,
-      goalAlignment,
-      history: userProfile.suggestion_history || []
+      detailedTrace,
+      priorDesgasteSeries,
+      userProfile
     });
 
-    const now = new Date().toISOString();
     const existing = bundle.entry;
     const savedEntry = {
       id: existing ? existing.id : payload.date,
@@ -655,26 +761,12 @@ const FirebaseBackend = {
         safety_locked: dailyReflection.safety_locked
       } : null,
       user_corrections: existing ? (existing.user_corrections || {}) : {},
+      ml_tier: fullText ? (usedTier1 ? "tier_1_onnx_q8" : "tier_0_syntax") : "none",
       created_at: existing ? existing.created_at : now,
       updated_at: now
     };
 
-    this._lastDevTrace = {
-      timestamp: now,
-      type: "day_entry_inference",
-      date: payload.date,
-      input_text: fullText,
-      latency_ms: detailedTrace ? detailedTrace.latency_ms : 0.0,
-      input_tokens: detailedTrace ? detailedTrace.input_tokens : 0,
-      profile: layaProfile,
-      raw_answers: detailedTrace ? detailedTrace.raw_answers : {},
-      raw_usage: detailedTrace ? detailedTrace.raw_usage : {},
-      valence_calculation: detailedTrace ? detailedTrace.valence_calculation : {},
-      syntax_analysis: detailedTrace ? detailedTrace.syntax_analysis : null,
-      calibration_meta: detailedTrace ? detailedTrace.calibration_meta : null,
-      daily_reflection: dailyReflection,
-      questions_schema: ClientEngine.LAYA_QUESTIONS
-    };
+    this._recordDevTrace(now, payload.date, fullText, detailedTrace, dailyReflection);
 
     bundle.entry = savedEntry;
     await this._writeDayBundle(payload.date, bundle);
@@ -694,6 +786,17 @@ const FirebaseBackend = {
     }
     userProfile.updated_at = now;
     await this._writeVaultDoc("profile", userProfile);
+
+    if (fullText && !usedTier1 && typeof SemanticClient !== "undefined" && SemanticClient.isSupported()) {
+      SemanticClient.scheduleReconcile({
+        entryId: payload.date,
+        revision: now,
+        text: fullText,
+        questionnaire: q,
+        priorDesgasteSeries,
+        onResolved: (eid, rev, trace) => this.applyTier1Upgrade(eid, rev, trace, priorDesgasteSeries)
+      });
+    }
 
     return savedEntry;
   },
@@ -924,6 +1027,13 @@ const FirebaseBackend = {
   },
 
   async simulateLaya(text) {
+    if (typeof SemanticClient !== "undefined" && SemanticClient.isSupported()) {
+      try {
+        return await SemanticClient.classify(text);
+      } catch {
+        // Respaldo instantáneo Tier 0 si el Worker aún no puede iniciar
+      }
+    }
     return ClientEngine.classifyTextDetailed(text);
   },
 

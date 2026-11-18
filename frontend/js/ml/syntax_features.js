@@ -116,10 +116,10 @@
       family: "mental_load",
       weight: 1.5,
       valence: { negativo: 0.9, muy_negativo: 0.2 },
-      activation: { agotamiento_baja: 1.15, tension_alta: 0.4 },
+      activation: { agotamiento_baja: 1.35, tension_alta: 0.35 },
       emotion: { apatia: 0.9, estres: 0.75 },
-      axes: { carga_mental: 1.7 },
-      signals: { desgaste_sostenido: 1.15 }
+      axes: { carga_mental: 1.75 },
+      signals: { desgaste_sostenido: 1.35 }
     },
     {
       phrase: "en automatico",
@@ -136,10 +136,10 @@
       family: "mental_load",
       weight: 1.55,
       valence: { negativo: 1.1, muy_negativo: 0.35 },
-      activation: { agotamiento_baja: 1.1, tension_alta: 0.65 },
+      activation: { agotamiento_baja: 1.25, tension_alta: 0.5 },
       emotion: { estres: 0.85, frustracion: 0.6 },
       axes: { carga_mental: 1.85 },
-      signals: { desgaste_sostenido: 1.1 }
+      signals: { desgaste_sostenido: 1.3 }
     },
     {
       phrase: "no me da el cerebro",
@@ -991,6 +991,19 @@
         // Si un término positivo aparece entrecomillado o exclamado irónicamente, no suma positivo.
         if (isIronicWord) {
           suppressedTokens.add(idx);
+          return;
+        }
+
+        // Concesivo frustrado ("por más que intenté estar tranquilo...") seguido de fallo/negación en la nota.
+        const isFrustratedAttempt =
+          (POSITIVE_AFFECT_TARGETS.has(word) || POSITIVE_ENERGY_TARGETS.has(word)) &&
+          /\b(?:por mas que|aunque)\s+(?:intente|trate|quise|busque)\b[^.;!?]*$/.test(cl.folded.slice(0, tok.start)) &&
+          /\b(no|ni|nunca|tampoco|sin)\b/.test(fullFolded);
+        if (isFrustratedAttempt) {
+          suppressedTokens.add(idx);
+          signalAccum.sig_negated_positive += 0.6 * w;
+          addScore(rawLogits.valencia, "negativo", 0.55 * w);
+          clauseNegScore += 0.5;
           return;
         }
 

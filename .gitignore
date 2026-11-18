@@ -19,8 +19,9 @@ data/checkpoints/
 data/train_feedback.jsonl
 *.bak
 
-# Modelos / binarios pesados (> 1 MB deben ir en GitHub Releases / CDN externo)
+# Modelos / binarios pesados (> 1 MB deben ir en GitHub Releases / CDN externo; excepcion: encoder recortado INT8 en models/ < 20 MB para jsDelivr CDN)
 *.onnx
+!models/model_es_q8.onnx
 *.onnx_data
 *.safetensors
 *.bin

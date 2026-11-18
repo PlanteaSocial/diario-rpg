@@ -409,10 +409,51 @@ const ClientEngine = {
       tokens = folded.split(/\s+/).filter(Boolean).length;
     }
 
+    return this.buildDetailedTraceFromProfile(text, {
+      valRes,
+      actRes,
+      emoRes,
+      ejesOut,
+      senalesOut,
+      tokens,
+      latencyMs: this._round(performance.now() - t0, 2),
+      backendName,
+      syntaxAnalysis,
+      calibrationMeta
+    });
+  },
+
+  /**
+   * Empaqueta bloques calibrados (Tier 0 o Tier 1) en la estructura estándar Laya.
+   */
+  buildDetailedTraceFromProfile(text, {
+    valRes,
+    actRes,
+    emoRes,
+    ejesOut,
+    senalesOut,
+    tokens = 0,
+    latencyMs = 0,
+    backendName = "laya-syntax-calibrada-js",
+    syntaxAnalysis = null,
+    calibrationMeta = null,
+    extraUsage = null
+  }) {
+    const valChoice = valRes.choice || valRes.best;
+    const actChoice = actRes.choice || actRes.best;
+    const emoChoice = emoRes.choice || emoRes.best;
+    const valConf = valRes.answer_confidence ?? valRes.confidence;
+    const actConf = actRes.answer_confidence ?? actRes.confidence;
+    const emoConf = emoRes.answer_confidence ?? emoRes.confidence;
+
+    const valProbs = valRes.probs || valRes.probabilities || {};
+    const actProbs = actRes.probs || actRes.probabilities || {};
+    const emoProbs = emoRes.probs || emoRes.probabilities || {};
+
     const answers = {
-      valencia_emocional: { type: "choice", choice: valRes.choice, probabilities: valRes.probs || valRes.probabilities, answer_confidence: valRes.answer_confidence },
-      activacion_energia: { type: "choice", choice: actRes.choice, probabilities: actRes.probs || actRes.probabilities, answer_confidence: actRes.answer_confidence },
-      emocion_primaria: { type: "choice", choice: emoRes.choice, probabilities: emoRes.probs || emoRes.probabilities, answer_confidence: emoRes.answer_confidence },
+      valencia_emocional: { type: "choice", choice: valChoice, probabilities: valProbs, answer_confidence: valConf },
+      activacion_energia: { type: "choice", choice: actChoice, probabilities: actProbs, answer_confidence: actConf },
+      emocion_primaria: { type: "choice", choice: emoChoice, probabilities: emoProbs, answer_confidence: emoConf },
       eje_trabajo_estudio: { type: "noul", noul: ejesOut.trabajo_estudio },
       eje_descanso_sueno: { type: "noul", noul: ejesOut.descanso_sueno },
       eje_relaciones_familia: { type: "noul", noul: ejesOut.relaciones_familia },
@@ -423,7 +464,6 @@ const ClientEngine = {
       sen_riesgo_autolesion_purga: { type: "noul", noul: senalesOut.riesgo_autolesion_purga }
     };
 
-    const valProbs = valRes.probs || valRes.probabilities || {};
     const calcSteps = [];
     let scoreEstimado = 0.0;
     for (const [cat, weight] of Object.entries(this.VALENCE_WEIGHTS)) {
@@ -439,13 +479,17 @@ const ClientEngine = {
       });
     }
 
-    const latencyMs = this._round(performance.now() - t0, 2);
-    const usage = { input_tokens: tokens, latency_ms: latencyMs, backend: backendName };
+    const usage = {
+      input_tokens: tokens,
+      latency_ms: this._round(latencyMs, 2),
+      backend: backendName,
+      ...(extraUsage || {})
+    };
 
     const profile = {
-      valencia_emocional: { choice: valRes.choice, probabilities: valProbs, answer_confidence: valRes.answer_confidence },
-      activacion_energia: { choice: actRes.choice, probabilities: actRes.probs || actRes.probabilities, answer_confidence: actRes.answer_confidence },
-      emocion_primaria: { choice: emoRes.choice, probabilities: emoRes.probs || emoRes.probabilities, answer_confidence: emoRes.answer_confidence },
+      valencia_emocional: { choice: valChoice, probabilities: valProbs, answer_confidence: valConf },
+      activacion_energia: { choice: actChoice, probabilities: actProbs, answer_confidence: actConf },
+      emocion_primaria: { choice: emoChoice, probabilities: emoProbs, answer_confidence: emoConf },
       ejes_tematicos: ejesOut,
       senales_alerta: senalesOut,
       valencia_score_estimada: this._round(scoreEstimado, 2),
@@ -454,7 +498,7 @@ const ClientEngine = {
 
     return {
       text,
-      latency_ms: latencyMs,
+      latency_ms: usage.latency_ms,
       input_tokens: tokens,
       profile,
       raw_answers: answers,

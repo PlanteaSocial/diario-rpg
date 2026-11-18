@@ -394,6 +394,11 @@ const Auth = {
     const devTools = document.getElementById("date-tools-dev-section");
     if (devTools) devTools.hidden = !showDev;
 
+    if (API.isCloud() && typeof SemanticClient !== "undefined") {
+      // Precargar el Web Worker ONNX en segundo plano (IndexedDB en visitas repetidas)
+      SemanticClient.warmup();
+    }
+
     if (!this.started) {
       this.started = true;
       Promise.resolve(App.init()).catch((err) => {
